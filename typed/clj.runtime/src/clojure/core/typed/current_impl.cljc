@@ -40,7 +40,7 @@
 #?(:cljs :ignore
 :default
 (defmacro impl-case [opts & {clj-case :clojure cljs-case :cljs cljr-case :cljr unknown :unknown :as opt}]
-  (let [bad (set/difference (set (keys opt)) #{:clojure :cljs :cljr ::unknown})
+  (let [bad (set/difference (set (keys opt)) #{:clojure :cljs :cljr :unknown})
         _ (assert (empty? bad) (str "Incorrect cases to impl-case: " (pr-str bad)))
         gopts (gensym 'opts)
         gimpl (gensym 'impl)]
