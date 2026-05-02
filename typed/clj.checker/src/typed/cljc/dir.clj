@@ -47,8 +47,7 @@
          {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (-> (or tracker (track/tracker))
                                                                                         (dir/scan-dirs 
                                                                                           dirs
-                                                                                          {:platform (impl/impl-case opts
-                                                                                                       :clojure find/clj)}))
+                                                                                          {:platform find/clj}))
          _ (assert (seq files) (str "No files found in " (pr-str dirs)))
          nses (into [] (filter (every-pred (set (vals filemap))
                                            #(ns-deps-u/should-check-ns? % opts)))
@@ -63,9 +62,7 @@
 (defn check-dir* [dirs opts]
   (let [{:keys [nses]} (check-dir-plan dirs opts)]
     (println "Type checking namespaces:" nses)
-    ((impl/impl-case opts
-       :clojure t/check-ns-clj)
-     nses)))
+    (t/check-ns-clj nses)))
 
 (defn check-dir-clj [dirs]
   (check-dir* dirs ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
