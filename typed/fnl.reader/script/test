@@ -1,4 +1,0 @@
-#!/bin/sh
-
-clojure "$@" -M:test:runner
-./script/test-bb
