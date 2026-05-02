@@ -2,7 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.3"}
         org.clojure/clojurescript {:mvn/version "1.12.42"}
-        org.clojure/tools.reader {:mvn/version "1.5.0"}
+        org.clojure/tools.reader {:mvn/version "1.5.2"}
         org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
                                               :deps/manifest :deps}}
  :aliases {:nREPL

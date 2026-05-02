@@ -46,7 +46,7 @@
    :tools-analyzer-mvn-version "1.2.0"
    :tools-analyzer-jvm-mvn-version "1.3.2"
    :math-combinatorics-mvn-version "0.2.0"
-   :tools-reader-mvn-version "1.5.0"
+   :tools-reader-mvn-version "1.5.2"
    :core-cache-mvn-version "1.1.234"
    :core-async-mvn-version "1.7.701"
    :test-check-mvn-version "1.1.1"
