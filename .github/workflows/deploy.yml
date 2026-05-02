@@ -24,7 +24,7 @@ jobs:
     env:
       DEPLOY_JDK: 11
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/cache@v4
         with:
           path: |
@@ -37,11 +37,11 @@ jobs:
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-deploy-deps-
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{env.BABASHKA_VERSION}}
@@ -69,7 +69,7 @@ jobs:
     env:
       DEPLOY_JDK: 11
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/cache@v4
         with:
           path: |
@@ -81,20 +81,20 @@ jobs:
             ${{ runner.os }}-docs-deps-${{ hashFiles('**/pom.xml') }}-
             ${{ runner.os }}-docs-deps-
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{ env.BABASHKA_VERSION }}
       - name: Build API docs
         run: ./script/build-docs.sh
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: target/codox
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
