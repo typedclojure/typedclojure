@@ -336,14 +336,3 @@
     (type-doc* (impl/clj-checker) v opts)))
 
 (defn type-doc-clj [v] (println (type-doc-clj* v)))
-
-(defn type-doc-cljs* [v]
-  ((requiring-resolve 'cljs.core.typed/load-if-needed))
-  ((requiring-resolve 'cljs.core.typed/register!))
-  (let [nsym ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))]
-    (type-doc* (impl/cljs-checker) v
-               (-> ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
-                   (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns nsym)
-                   (prs/with-unparse-ns nsym)))))
-
-(defn type-doc-cljs [v] (println (type-doc-cljs* v)))

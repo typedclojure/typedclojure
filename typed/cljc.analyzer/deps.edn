@@ -15,12 +15,6 @@
             :extra-paths ["script"]
             :main-opts ["-m" "gen-doc"]}
 
-           :test-cljs
-           {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
-            :extra-deps {org.clojure/clojurescript {:git/url "https://github.com/clojure/clojurescript.git"
-                                                    :git/sha "f97d766defd02f7d43abd37e3e9b04790a521b1e"}}
-            :extra-paths ["test"]}
-
            :runner-cljs {:extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}
                          :main-opts ["-m" "cljs-test-runner.main"
                                      "-d" "test"

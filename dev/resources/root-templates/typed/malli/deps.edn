@@ -8,8 +8,7 @@
  :aliases {:test
            {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
             :extra-paths ["test"]
-            :extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}
-                         {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}}}
+            :extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

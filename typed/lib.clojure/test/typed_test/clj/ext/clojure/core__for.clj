@@ -2,28 +2,19 @@
   (:require [clojure.test :refer [deftest is testing]]
             [typed.clojure :as t]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.test-utils :as clj]
-            [typed.cljs.checker.test-utils :as cljs]))
+            [typed.clj.checker.test-utils :as clj]))
 
 (defn subtype? [s t]
-  (and (clj/subtype? s t)
-       #_
-       (cljs/subtype? s t)))
+  (clj/subtype? s t))
 
 (defmacro tc-e [& args]
-  `(do (clj/tc-e ~@args)
-       #_
-       (cljs/tc-e ~@args)))
+  `(clj/tc-e ~@args))
 
 (defmacro is-tc-e [& args]
-  `(do (clj/is-tc-e ~@args)
-       #_
-       (cljs/is-tc-e ~@args)))
+  `(clj/is-tc-e ~@args))
 
 (defmacro is-tc-err [& args]
-  `(do (clj/is-tc-err ~@args)
-       #_
-       (cljs/is-tc-err ~@args)))
+  `(clj/is-tc-err ~@args))
 
 (deftest for-test
   ; type checked

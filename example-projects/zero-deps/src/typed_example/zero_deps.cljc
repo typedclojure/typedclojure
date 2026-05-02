@@ -24,6 +24,4 @@
 
 (comment
   ((requiring-resolve `t/check-ns-clj))
-  ;; FIXME DataType <: Protocol subtyping case
-  ((requiring-resolve `t/check-ns-cljs))
   )

@@ -23,7 +23,7 @@ Optional typing in Clojure, as a library.
 
 ## Usage Overview
 
-tldr; see the [minimal example project](example-projects/minimal) for Typed Clojure[Script] setup.
+tldr; see the [minimal example project](example-projects/minimal) for Typed Clojure setup.
 
 Typed Clojure is separated into modules. You'll want the full type checker at development
 time, and the runtime dependencies in production.
@@ -48,12 +48,10 @@ In Leiningen's `project.clj`, it will look something like this:
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
 checker is not included in uberjars with `lein with-profile uberjar deps :tree`.
 
-For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.typedclojure/typed.cljs.checker`.
-
 ## Example projects
 
-- [minimal](example-projects/minimal) demonstrates how to statically type check Clojure[Script] namespaces
-- [minimal-clj](example-projects/minimal-clj) demonstrates how to statically type check (just) Clojure namespaces
+- [minimal](example-projects/minimal) demonstrates how to statically type check Clojure namespaces
+- [minimal-clj](example-projects/minimal-clj) demonstrates how to statically type check Clojure namespaces
 - [malli-type-providers](example-projects/malli-type-providers) demonstrates how to statically type check using malli schemas
 - [zero-deps](example-projects/zero-deps) demonstrates how to type check a library without introducing any runtime dependency on Typed Clojure (only dev-time).
 - [symbolic-guide](example-projects/symbolic-guide) shows how to reason about symbolic execution in Typed Clojure.
@@ -70,12 +68,6 @@ See modules for specific version coordinates:
 * [typed.clj.runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj.analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
 * [typed.malli](typed/malli/README.md): Malli integration.
-
-### ClojureScript implementation
-
-* [typed.cljs.analyzer](typed/cljs.analyzer/README.md): Analyzer for JS Clojure
-* [typed.cljs.checker](typed/cljs.checker/README.md): The JS type checker
-* [typed.cljs.runtime](typed/cljs.runtime/README.md): Runtime dependencies
 
 ### Implementation-agnostic
 
@@ -107,33 +99,10 @@ See [wiki](https://github.com/clojure/core.typed/wiki).
 
 [Ambrose's blog](https://blog.ambrosebs.com)
 
-## Leiningen Plugin
-
-[lein-typed](https://github.com/frenchy64/lein-typed)
-
-## Vim Plugin
-
-[vim-typedclojure](https://github.com/typedclojure/vim-typedclojure)
-
-## Emacs Mode
-
-[typed-clojure-mode](https://github.com/typedclojure/typed-clojure-mode)
-
-## Examples
-
-[core.async Rock-paper-scissors](typed/lib.core.async/test/typed_test/lib/clojure/core/async/rps_async_test.clj)
-
 ## Developer Information
 
 - [Typed Clojure Contributor Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contributing guidelines](CONTRIBUTING.md)
-
-<!---
-## Future work
-
-* Track changes to Typed Racket
-  * https://github.com/plt/racket/compare/6105ce8b2087...71d6189132ce
--->
 
 ## Contributors
 
@@ -158,15 +127,6 @@ Thanks to the following people for contributing to core.typed:
 * Piotr Jarzemski (kazuhiro)
 * Oleksandr Yakushev (alexander-yakushev)
 * David Miller (dmiller)
-
-## YourKit
-
-YourKit is kindly supporting core.typed and other open source projects with its full-featured Java Profiler.
-YourKit, LLC is the creator of innovative and intelligent tools for profiling
-Java and .NET applications. Take a look at YourKit's leading software products:
-
-* <a href="https://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a> and
-* <a href="https://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>.
 
 ## License
 

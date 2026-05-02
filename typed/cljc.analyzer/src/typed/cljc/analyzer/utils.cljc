@@ -9,7 +9,6 @@
 ;copied from clojure.tools.analyzer.utils
 (ns ^:typed.clojure typed.cljc.analyzer.utils
   (:refer-clojure :exclude [update-vals])
-  #?(:cljs (:require [cljs.analyzer :as cljs-ana]))
   #?@(:cljs []
       :bb []
       ; clj+cljr
@@ -215,8 +214,7 @@
   (let [t (->> dest
                (source-info-into-transient! env)
                (source-info-into-transient! (meta x)))]
-    (if-let [file (let [file #?(:cljs cljs-ana/*cljs-file*
-                                :default *file*)]
+    (if-let [file (let [file *file*]
                     ;;TODO NO_SOURCE_PATH
                     (and (not= file "NO_SOURCE_FILE")
                          file))]

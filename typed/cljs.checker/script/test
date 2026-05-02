@@ -1,5 +1,0 @@
-#!/bin/sh
-# note: can't pass args to kaocha -- use bin/kaocha
-
-#clojure "$@" -M:test:runner
-clojure "$@" -M:test:kaocha -m kaocha.runner

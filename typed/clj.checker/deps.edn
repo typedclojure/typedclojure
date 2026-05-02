@@ -42,9 +42,7 @@
     {:mvn/version "0.2.12"}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}
-    babashka/fs {:mvn/version "0.5.24"}
-    ;; for shared tests
-    org.typedclojure/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}}},
+    babashka/fs {:mvn/version "0.5.24"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
