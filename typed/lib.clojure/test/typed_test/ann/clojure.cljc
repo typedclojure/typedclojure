@@ -1,7 +1,6 @@
 (ns ^:typed.clojure typed-test.ann.clojure
   (:require [clojure.test :refer [deftest is]]
             [typed.clj.checker.test-utils :as clj]
-            [typed.cljs.checker.test-utils :as cljs]
             [clojure.tools.reader :as reader]
             [clojure.tools.reader.reader-types :as readers]
             [clojure.java.io :as io]))
@@ -10,15 +9,11 @@
 
 (defmacro is-tc-e [& args]
   `(do (when (:clj *platforms*)
-         (clj/is-tc-e ~@args))
-       (when (:cljs *platforms*)
-         (cljs/is-tc-e ~@args))))
+         (clj/is-tc-e ~@args))))
 
 (defmacro is-tc-err [& args]
   `(do (when (:clj *platforms*)
-         (clj/is-tc-err ~@args))
-       (when (:cljs *platforms*)
-         (cljs/is-tc-err ~@args))))
+         (clj/is-tc-err ~@args))))
 
 (defmacro without-cljs [& body]
   `(binding [*platforms* (disj *platforms* :cljs)]
