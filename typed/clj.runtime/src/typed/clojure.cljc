@@ -13,10 +13,7 @@
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
                             defn atom ref cast #?(:clj requiring-resolve)])
-  (:require #?(;; for self hosted CLJS normal :require's from .clj/c files. for
-               ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
-               :cljs cljs.core.typed
-               ;; not loadable in self hosted CLJS, otherwise always needed for
+  (:require #?(;; not loadable in self hosted CLJS, otherwise always needed for
                ;; CLJ AOT compilation compatibility
                :default clojure.core.typed)
             [clojure.core :as cc]
@@ -165,13 +162,6 @@
     ns-or-syms
     opt)))
 
-(cc/defn check-ns-cljs
-  ([] (check-ns-cljs (ns-name *ns*)))
-  ([& args]
-   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
-             :cljs cljs.core.typed/check-ns*)
-          args)))
-
 (defmacro cns
   "In Clojure, expands to (check-ns-clj ~@args).
   In ClojureScript JVM, emulates calling (check-ns-cljs ~@args) at expansion time
@@ -188,11 +178,9 @@
   #?(;; idea:
      ;; - if *ns* ends in $macros, check-ns-clj
      ;; - otherwise, check-ns-cljs
-     :cljs `(check-ns-cljs ~@args)
      :default (platform-case
                 ;; hmm, should this be evaluated at compile-time too for consistency?
-                :clj `(check-ns-clj ~@args)
-                :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))))
+                :clj `(check-ns-clj ~@args))))
 
 (defmacro cf-clj
   "Check a Clojure form in the current *ns*."
@@ -206,8 +194,7 @@
   In ClojureScript JVM, expands to (cljs.core.typed/cf ~@args)."
   [& args]
   #?(:default (platform-case
-                :clj `(cf-clj ~@args)
-                :cljs `(cf-cljs ~@args))))
+                :clj `(cf-clj ~@args))))
 
 (defmacro doc-clj
   "Pass any syntax fragment related to Typed Clojure to print documentation on it.
@@ -221,6 +208,3 @@
 
 (cc/defn check-dir-clj [dirs]
   ((requiring-resolve 'typed.cljc.dir/check-dir-clj) dirs))
-
-(cc/defn check-dir-cljs [dirs]
-  ((requiring-resolve 'typed.cljc.dir/check-dir-cljs) dirs))

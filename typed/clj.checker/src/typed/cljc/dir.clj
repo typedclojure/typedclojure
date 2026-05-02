@@ -48,8 +48,7 @@
                                                                                         (dir/scan-dirs 
                                                                                           dirs
                                                                                           {:platform (impl/impl-case opts
-                                                                                                       :clojure find/clj
-                                                                                                       :cljs find/cljs)}))
+                                                                                                       :clojure find/clj)}))
          _ (assert (seq files) (str "No files found in " (pr-str dirs)))
          nses (into [] (filter (every-pred (set (vals filemap))
                                            #(ns-deps-u/should-check-ns? % opts)))
@@ -59,22 +58,17 @@
 
 (t/ann-many [Dirs t/Any :-> t/Kw]
             check-dir* 
-            ^:no-check check-dir-clj
-            ^:no-check check-dir-cljs)
+            ^:no-check check-dir-clj)
 
 (defn check-dir* [dirs opts]
   (let [{:keys [nses]} (check-dir-plan dirs opts)]
     (println "Type checking namespaces:" nses)
     ((impl/impl-case opts
-       :clojure t/check-ns-clj
-       :cljs t/check-ns-cljs)
+       :clojure t/check-ns-clj)
      nses)))
 
 (defn check-dir-clj [dirs]
   (check-dir* dirs ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
-
-(defn check-dir-cljs [dirs]
-  (check-dir* dirs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))))
 
 (comment
   (check-dir-plan "typed/clj.checker/src" ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))

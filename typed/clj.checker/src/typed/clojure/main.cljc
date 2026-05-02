@@ -86,8 +86,7 @@
                              (= :ok (:result acc))]}
                       (vreset! checked true)
                       (let [chk #((case platform
-                                    :clj t/check-ns-clj
-                                    :cljs t/check-ns-cljs)
+                                    :clj t/check-ns-clj)
                                   nsym)
                             res (try (chk)
                                      (assoc info :result :ok)
