@@ -14,7 +14,7 @@
         _ (assert (every? seq splits) artifact-id)
         module-dir (str "typed/" (str/join "." (subvec splits 1)))
         _ (assert (#{"typed"} a1) (str "First part of artifactId must be `typed` :" artifact-id))
-        module-src-dir (str module-dir "/src/" (namespace-munge (str/join "/" (pop splits))))
+        module-src-dir (str module-dir "/src/" (str/join "/" (map namespace-munge (pop splits))))
         module-test-dir (str module-dir "/test/typed_test/" (str/join "/" (map namespace-munge (-> splits (subvec 1) pop))))
         module-templates-dir (str "dev/resources/root-templates/typed/" (str/join "." (subvec splits 1)))
         module-script-dir (str module-dir "/script")
@@ -28,8 +28,7 @@
      :module-script-dir module-script-dir
      :module-templates-dir module-templates-dir
      :module-root-src-ns module-root-src-ns
-     :module-root-test-ns module-root-test-ns
-     }))
+     :module-root-test-ns module-root-test-ns}))
 
 (defn create-template-plan
   "Repo-root relative mapping from selmer template to destination path.
@@ -40,11 +39,12 @@
                 module-src-dir
                 module-test-dir
                 module-templates-dir
-                module-script-dir]} (module-info artifact-id)]
+                module-script-dir]} (module-info artifact-id)
+        module-src-file-name (str (namespace-munge (peek splits)) ".clj")]
     (-> {"module-template/deps.edn" (str module-templates-dir "/deps.edn")
          "module-template/README.md" (str module-templates-dir "/README.md")
-         "module-template/source.clj" (str module-src-dir "/" (peek splits) ".clj")
-         "module-template/test.clj" (str module-test-dir "/" (peek splits) ".clj")}
+         "module-template/source.clj" (str module-src-dir "/" module-src-file-name)
+         "module-template/test.clj" (str module-test-dir "/" module-src-file-name)}
         (into (map (fn [^java.io.File f]
                      (when (not (.isDirectory f))
                        [(str "module-template/script/" (.getName f))
