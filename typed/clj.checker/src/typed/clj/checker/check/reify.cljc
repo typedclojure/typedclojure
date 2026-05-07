@@ -136,7 +136,6 @@
                                    (doseq [method methods
                                            :let [_ (assert (= 1 (count (:methods method))))
                                                  m (first (:methods method))
-                                                 _ (prn m)
                                                  rfin-type (cu/extend-method-expected this-t (cu/instance-method->Function m opts) opts)]]
                                      (check-inst-fn-methods
                                        [method]

@@ -295,6 +295,16 @@
    :post [((method-return? opts) %)]}
   (let [ts (function-types expected opts)]
     (cond
+      ;; TopFunction (AnyFunction) — a supertype of all functions.
+      ;; Accept any method signatures; the body types are unconstrained.
+      ;; This handles reify of IFn and typed functional interfaces
+      ;; where TC doesn't have a concrete expected function type.
+      (and (empty? ts)
+           (r/TopFunction? (c/fully-resolve-type expected opts)))
+      {:methods mthods
+       :ifn (r/TopFunction-maker)
+       :cmethods []}
+
       (empty? ts)
       (let [opts (prs/with-unparse-ns opts (cu/expr-ns (first mthods) opts))]
         (err/tc-delayed-error (str (pr-str (prs/unparse-type expected opts)) " is not a function type")
