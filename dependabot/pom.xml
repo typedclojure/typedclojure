@@ -40,7 +40,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>1.1.281</version>
+        <version>1.2.281</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
@@ -106,6 +106,11 @@
         <groupId>babashka</groupId>
         <artifactId>process</artifactId>
         <version>0.5.22</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.frenchy64</groupId>
+        <artifactId>fully-satisfies</artifactId>
+        <version>1.12.0</version>
       </dependency>
       <dependency>
         <groupId>io.github.frenchy64</groupId>

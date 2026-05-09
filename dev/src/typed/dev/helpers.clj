@@ -35,7 +35,7 @@
    :typedclojure-git-https-url "https://github.com/typedclojure/typedclojure"
    :typedclojure-group-id "org.typedclojure"
    :selmer-mvn-version "1.12.62"
-   :core-memoize-mvn-version "1.1.281"
+   :core-memoize-mvn-version "1.2.281"
    :nrepl-mvn-version "1.3.1"
    :reply-mvn-version "0.5.1"
    :parsley-mvn-version "0.9.3"
