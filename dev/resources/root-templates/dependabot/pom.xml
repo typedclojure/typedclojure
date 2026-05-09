@@ -88,14 +88,19 @@
         <version>{◊test-check-mvn-version◊}</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.logic</artifactId>
-        <version>{◊core-logic-mvn-version◊}</version>
+        <groupId>org.gfredericks</groupId>
+        <artifactId>test.chuck</artifactId>
+        <version>{◊test-chuck-mvn-version◊}</version>
       </dependency>
       <dependency>
         <groupId>metosin</groupId>
         <artifactId>malli</artifactId>
         <version>{◊malli-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>codox</groupId>
+        <artifactId>codox</artifactId>
+        <version>{◊codox-mvn-version◊}</version>
       </dependency>
       <dependency>
         <groupId>com.nextjournal</groupId>
@@ -106,6 +111,26 @@
         <groupId>babashka</groupId>
         <artifactId>process</artifactId>
         <version>{◊process-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>babashka</groupId>
+        <artifactId>fs</artifactId>
+        <version>{◊fs-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.clojure-goes-fast</groupId>
+        <artifactId>clj-async-profiler</artifactId>
+        <version>{◊clj-async-profiler-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.clj-easy</groupId>
+        <artifactId>graal-build-time</artifactId>
+        <version>{◊graal-build-time-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.javaparser</groupId>
+        <artifactId>javaparser-core</artifactId>
+        <version>{◊graal-build-time-mvn-version◊}</version>
       </dependency>
       <dependency>
         <groupId>io.github.frenchy64</groupId>

@@ -51,7 +51,6 @@
    :core-async-mvn-version "1.7.701"
    :test-check-mvn-version "1.1.3"
    :test-chuck-mvn-version "0.2.12"
-   :core-logic-mvn-version "1.1.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
@@ -66,7 +65,6 @@
    :fully-satisfies-mvn-version "1.12.0"
    :fully-satisfies-bb-sha "37149ae490af63071a2d92e730f22324e7835f24"
    :clj-async-profiler-mvn-version "1.6.1"
-   :instaparse-mvn-version "1.5.0"
    :javaparser-mvn-version "3.26.1"
    :graal-build-time-mvn-version "1.0.5"
    })
