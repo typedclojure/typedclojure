@@ -40,7 +40,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>1.1.266</version>
+        <version>1.1.281</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
@@ -95,12 +95,12 @@
       <dependency>
         <groupId>metosin</groupId>
         <artifactId>malli</artifactId>
-        <version>0.17.0</version>
+        <version>0.20.1</version>
       </dependency>
       <dependency>
         <groupId>com.nextjournal</groupId>
         <artifactId>beholder</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
       </dependency>
       <dependency>
         <groupId>babashka</groupId>
