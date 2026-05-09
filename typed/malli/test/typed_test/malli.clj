@@ -9,7 +9,6 @@
 
 (sut/defparser AnyInteger-parser t/AnyInteger)
 
-
 (deftest malli-ops-test
   (is (true? (sut/validate t/Any 1)))
   (is (false? (sut/validate t/AnyInteger nil)))
@@ -25,11 +24,11 @@
          (sut/parse t/AnyInteger 1)))
   (is (= ::m/invalid
          (sut/parse t/AnyInteger nil)))
-  (is (= [:left :left]
+  (is (= (m/tag :left :left)
          (sut/parse (t/U ^{::sut/name :left} ':left
                          ^{::sut/name :right} ':right)
                     :left)))
-  (is (= [:right :right]
+  (is (= (m/tag :right :right)
          (sut/parse (t/U ^{::sut/name :left} ':left
                          ^{::sut/name :right} ':right)
                     :right)))
@@ -37,11 +36,11 @@
          (sut/parse (t/U ^{::sut/name :left} ':left
                          ^{::sut/name :right} ':right)
                     :middle)))
-  (is (= [:int 1]
+  (is (= (m/tag :int 1)
          (sut/parse (t/U ^{::sut/name :int} t/AnyInteger
                          ^{::sut/name :bool} t/Bool)
                     1)))
-  (is (= [:bool true]
+  (is (= (m/tag :bool true)
          (sut/parse (t/U ^{::sut/name :int} t/AnyInteger
                          ^{::sut/name :bool} t/Bool)
                     true))))
