@@ -40,7 +40,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>1.1.266</version>
+        <version>1.2.281</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
