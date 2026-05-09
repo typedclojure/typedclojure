@@ -9,6 +9,6 @@
   org.clojure/math.combinatorics {:mvn/version "0.3.2"},
   org.clojure/tools.namespace {:mvn/version "1.5.1"},
   org.clojure/tools.reader {:mvn/version "1.5.2"}
-  com.nextjournal/beholder {:mvn/version "1.0.2"}
+  com.nextjournal/beholder {:mvn/version "1.0.3"}
   babashka/process {:mvn/version "0.5.22"}
   io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}}}
