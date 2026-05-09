@@ -58,7 +58,7 @@
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
    :kaocha-sha "8846f91c9bf4338c561ffb866b5a8890e22889cd"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.17.0"
+   :malli-mvn-version "0.20.1"
    :beholder-mvn-version "1.0.3"
    :process-mvn-version "0.5.22"
    :fs-mvn-version "0.5.24"
