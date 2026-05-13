@@ -32,12 +32,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      # FIXME download directly
-      - uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          cli: ${{ env.CLOJURE_CLI_VERSION }}
-          bb: ${{env.BABASHKA_VERSION}}
-      - run: bb --version
+      - name: Install Clojure CLI
+        run: |
+          curl -O https://download.clojure.org/install/linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          chmod +x linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          sudo ./linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+      - name: Install babashka
+        run: |
+          curl -s https://raw.githubusercontent.com/babashka/babashka/master/install | sudo bash -s -- --version ${{ env.BABASHKA_VERSION }}
+          bb --version
       - name: Configure settings.xml
         run: |
           mkdir -p ~/.m2
@@ -67,11 +70,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      # FIXME download directly
-      - uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          cli: ${{ env.CLOJURE_CLI_VERSION }}
-          bb: ${{ env.BABASHKA_VERSION }}
+      - name: Install Clojure CLI
+        run: |
+          curl -O https://download.clojure.org/install/linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          chmod +x linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          sudo ./linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+      - name: Install babashka
+        run: |
+          curl -s https://raw.githubusercontent.com/babashka/babashka/master/install | sudo bash -s -- --version ${{ env.BABASHKA_VERSION }}
+          bb --version
       - name: Build API docs
         run: ./script/build-docs.sh
       - name: Upload Pages artifact
