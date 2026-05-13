@@ -1,5 +1,7 @@
 name: Deploy
 
+# Do not use GitHub caches in this file to defend against cache poisoning via forks.
+
 on:
   workflow_run:
     workflows: ["Test"]
@@ -25,22 +27,12 @@ jobs:
       DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/cache@v5
-        with:
-          path: |
-            ~/.m2/repository
-            ~/.gitlibs
-          key: ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
-          restore-keys: |
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
-            ${{ runner.os }}-deploy-deps-
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
+      # FIXME download directly
       - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
@@ -70,21 +62,12 @@ jobs:
       DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/cache@v5
-        with:
-          path: |
-            ~/.m2/repository
-            ~/.gitlibs
-          key: ${{ runner.os }}-docs-deps-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }}
-          restore-keys: |
-            ${{ runner.os }}-docs-deps-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-docs-deps-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-docs-deps-
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
+      # FIXME download directly
       - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
