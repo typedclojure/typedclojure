@@ -18,9 +18,14 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
-      - uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          bb: ${{env.BABASHKA_VERSION}}
+      - name: Install Clojure CLI
+        run: |
+          curl -O https://download.clojure.org/install/linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          chmod +x linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          sudo ./linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+      - name: Install babashka
+        run: |
+          curl -s https://raw.githubusercontent.com/babashka/babashka/master/install | sudo bash -s -- --version ${{ env.BABASHKA_VERSION }}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - name: Print test matrix
@@ -50,10 +55,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          cli: ${{ env.CLOJURE_CLI_VERSION }} 
-          bb: ${{env.BABASHKA_VERSION}}
+      - name: Install Clojure CLI
+        run: |
+          curl -O https://download.clojure.org/install/linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          chmod +x linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          sudo ./linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+      - name: Install babashka
+        run: |
+          curl -s https://raw.githubusercontent.com/babashka/babashka/master/install | sudo bash -s -- --version ${{ env.BABASHKA_VERSION }}
       - name: Run ${{ matrix.submodule }} tests
         run: ./script/run-ci-submodule-tests.sh
         env:
@@ -67,9 +76,14 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v6
-      - uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          bb: ${{env.BABASHKA_VERSION}}
+      - name: Install Clojure CLI
+        run: |
+          curl -O https://download.clojure.org/install/linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          chmod +x linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+          sudo ./linux-install-${{ env.CLOJURE_CLI_VERSION }}.sh
+      - name: Install babashka
+        run: |
+          curl -s https://raw.githubusercontent.com/babashka/babashka/master/install | sudo bash -s -- --version ${{ env.BABASHKA_VERSION }}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - run: ./script/check_docs.clj
