@@ -67,4 +67,5 @@
    :clj-async-profiler-mvn-version "1.6.1"
    :javaparser-mvn-version "3.26.1"
    :graal-build-time-mvn-version "1.0.5"
+   :clj-http-mvn-version "3.13.1"
    })

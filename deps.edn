@@ -17,12 +17,14 @@
     "typed/clj.runtime/test"
     "typed/cljc.analyzer/test"
     "typed/java.analyzer/test"
+    "typed/lib.clj-http/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
    {babashka/fs {:mvn/version "0.5.24"},
+    clj-http/clj-http {:mvn/version "3.13.1"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -48,6 +50,8 @@
     "--dir"
     "typed/java.analyzer/test"
     "--dir"
+    "typed/lib.clj-http/test"
+    "--dir"
     "typed/lib.clojure/test"
     "--dir"
     "typed/lib.core.async/test"
@@ -60,7 +64,7 @@
    [":patterns"
     "[\".*test.*\"]"
     ":dirs"
-    "[\"typed/clj.analyzer/test\" \"typed/clj.checker/test\" \"typed/clj.runtime/test\" \"typed/cljc.analyzer/test\" \"typed/java.analyzer/test\" \"typed/lib.clojure/test\" \"typed/lib.core.async/test\" \"typed/lib.spec.alpha/test\" \"typed/malli/test\"]"]},
+    "[\"typed/clj.analyzer/test\" \"typed/clj.checker/test\" \"typed/clj.runtime/test\" \"typed/cljc.analyzer/test\" \"typed/java.analyzer/test\" \"typed/lib.clj-http/test\" \"typed/lib.clojure/test\" \"typed/lib.core.async/test\" \"typed/lib.spec.alpha/test\" \"typed/malli/test\"]"]},
   :eastwood
   {:extra-deps
    {jonase/eastwood
@@ -80,12 +84,14 @@
     "typed/clj.runtime/test"
     "typed/cljc.analyzer/test"
     "typed/java.analyzer/test"
+    "typed/lib.clj-http/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
    {babashka/fs {:mvn/version "0.5.24"},
+    clj-http/clj-http {:mvn/version "3.13.1"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -120,6 +126,7 @@
   :test
   {:extra-deps
    {babashka/fs {:mvn/version "0.5.24"},
+    clj-http/clj-http {:mvn/version "3.13.1"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -133,6 +140,7 @@
     "typed/clj.runtime/test"
     "typed/cljc.analyzer/test"
     "typed/java.analyzer/test"
+    "typed/lib.clj-http/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
@@ -152,6 +160,7 @@
      "typed/clj.runtime/src"
      "typed/cljc.analyzer/src"
      "typed/java.analyzer/src"
+     "typed/lib.clj-http/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -163,6 +172,7 @@
      "typed/clj.runtime/src"
      "typed/cljc.analyzer/src"
      "typed/java.analyzer/src"
+     "typed/lib.clj-http/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -173,6 +183,7 @@
      "typed/clj.runtime/test"
      "typed/cljc.analyzer/test"
      "typed/java.analyzer/test"
+     "typed/lib.clj-http/test"
      "typed/lib.clojure/test"
      "typed/lib.core.async/test"
      "typed/lib.spec.alpha/test"
@@ -184,6 +195,7 @@
      "typed/clj.runtime/src"
      "typed/cljc.analyzer/src"
      "typed/java.analyzer/src"
+     "typed/lib.clj-http/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -193,6 +205,7 @@
      "typed/clj.runtime/test"
      "typed/cljc.analyzer/test"
      "typed/java.analyzer/test"
+     "typed/lib.clj-http/test"
      "typed/lib.clojure/test"
      "typed/lib.core.async/test"
      "typed/lib.spec.alpha/test"
@@ -201,6 +214,8 @@
  :deps
  {selmer/selmer {:mvn/version "1.12.62"},
   org.clojure/clojure {:mvn/version "1.12.3"},
+  org.typedclojure/typed.lib.clj-http
+  {:deps/manifest :deps, :local/root "typed/lib.clj-http"},
   org.typedclojure/typed.java.analyzer
   {:deps/manifest :deps, :local/root "typed/java.analyzer"},
   org.typedclojure/typed.clj.checker
