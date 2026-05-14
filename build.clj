@@ -77,8 +77,7 @@
 
 ;;TODO topological sort
 (def sorted-modules
-  '[org.typedclojure/typed.java.analyzer
-    org.typedclojure/typed.cljc.analyzer
+  '[org.typedclojure/typed.cljc.analyzer
     org.typedclojure/typed.clj.analyzer
     org.typedclojure/typed.lib.spec.alpha
     org.typedclojure/typed.lib.clojure
