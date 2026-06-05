@@ -21,7 +21,7 @@
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
-   {babashka/fs {:mvn/version "0.5.24"},
+   {babashka/fs {:mvn/version "0.5.33"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -81,7 +81,7 @@
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
-   {babashka/fs {:mvn/version "0.5.24"},
+   {babashka/fs {:mvn/version "0.5.33"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -115,7 +115,7 @@
   :spec-skip-macros {:jvm-opts ["-Dclojure.spec.skip-macros=true"]},
   :test
   {:extra-deps
-   {babashka/fs {:mvn/version "0.5.24"},
+   {babashka/fs {:mvn/version "0.5.33"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
