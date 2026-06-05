@@ -54,11 +54,6 @@
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
-        <artifactId>tools.analyzer</artifactId>
-        <version>{◊tools-analyzer-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
         <artifactId>tools.analyzer.jvm</artifactId>
         <version>{◊tools-analyzer-jvm-mvn-version◊}</version>
       </dependency>

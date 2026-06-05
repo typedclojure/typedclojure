@@ -43,7 +43,6 @@
    :tools-namespace-mvn-version "1.5.1"
    :cider-nrepl-mvn-version "0.52.1"
    :asm-mvn-version "9.8"
-   :tools-analyzer-mvn-version "1.2.0"
    :tools-analyzer-jvm-mvn-version "1.3.4"
    :math-combinatorics-mvn-version "0.3.2"
    :tools-reader-mvn-version "1.6.0"
