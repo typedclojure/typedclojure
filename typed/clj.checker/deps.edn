@@ -9,7 +9,7 @@
   org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},
   org.clojure/math.combinatorics {:mvn/version "0.3.2", :exclusions [org.clojure/clojure]},
   org.clojure/tools.namespace {:mvn/version "1.5.1"},
-  org.clojure/tools.reader {:mvn/version "1.5.2"}
+  org.clojure/tools.reader {:mvn/version "1.6.0"}
   com.nextjournal/beholder {:mvn/version "1.0.3"}
   babashka/process {:mvn/version "0.5.22"}
   io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}},
@@ -42,7 +42,7 @@
     {:mvn/version "0.2.12"}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}
-    babashka/fs {:mvn/version "0.5.24"}}},
+    babashka/fs {:mvn/version "0.5.33"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
