@@ -105,7 +105,7 @@
       <dependency>
         <groupId>babashka</groupId>
         <artifactId>process</artifactId>
-        <version>0.5.22</version>
+        <version>0.6.25</version>
       </dependency>
       <dependency>
         <groupId>babashka</groupId>
