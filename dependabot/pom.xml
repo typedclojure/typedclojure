@@ -70,7 +70,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.cache</artifactId>
-        <version>1.1.234</version>
+        <version>1.2.263</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
