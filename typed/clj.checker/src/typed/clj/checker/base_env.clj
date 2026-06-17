@@ -390,7 +390,7 @@ clojure.lang.Numbers/minus (t/IFn
                              [t/Num -> t/Num]
                              ;minus
                              [Long Long -> Long]
-                             [(t/U Double Long) (t/U Double Long) -> Long]
+                             [(t/U Double Long) (t/U Double Long) -> Double]
                              [t/AnyInteger t/AnyInteger -> t/AnyInteger]
                              [t/Num t/Num -> t/Num])
 clojure.lang.Numbers/unchecked_multiply (t/IFn [Long Long -> Long]
