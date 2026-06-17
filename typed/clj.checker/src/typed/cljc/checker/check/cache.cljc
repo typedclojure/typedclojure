@@ -237,8 +237,13 @@
                                (assoc :slurped slurped)))))))
 
 (defn check-top-level-expr [expr expected opt opts]
-  (if (need-to-check-top-level-expr? expr expected opt opts)
-    (let [cexpr (with-recorded-deps expr expected opts)]
-      (when (not expected) (record-cache! cexpr expr opt opts))
-      cexpr)
-    expr))
+  (if (-> *ns* meta :typed.clojure :experimental :cache)
+    ;; Cache active: use with-recorded-deps for dependency tracking
+    (if (need-to-check-top-level-expr? expr expected opt opts)
+      (let [cexpr (with-recorded-deps expr expected opts)]
+        (when (not expected) (record-cache! cexpr expr opt opts))
+        cexpr)
+      expr)
+    ;; Cache not active: skip monitoring overhead, check directly
+    (let [check-expr (::check/check-expr opts)]
+      (check-expr expr expected opts))))
