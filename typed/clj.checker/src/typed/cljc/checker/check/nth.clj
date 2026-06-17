@@ -193,6 +193,16 @@
           default-t (expr->type de)]
       ;(prn "nth" types)
       (cond
+        ;; When collection type is Any (Top), nth returns Any — sound conservative
+        ;; approximation: if we don't know the collection type, element type is unknown.
+        (some r/Top? types)
+        (-> expr
+            (assoc
+              u/expr-type (below/maybe-check-below
+                            (r/ret r/-any)
+                            expected
+                            opts)))
+
         (and (nat-value? num-t)
              (let [super (c/Un [r/-nil r/-any-hsequential] opts)]
                (every? #(ind/subtype? % super opts)

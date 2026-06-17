@@ -76,12 +76,17 @@
                             opts)
       (let [_ (when inst?
                 (let [target-class (resolve (:declaring-class method))
-                      _ (assert (class? target-class))]
-                  ;                (prn "check target" (prs/unparse-type (r/ret-t (u/expr-type ctarget)) opts)
+                      _ (assert (class? target-class))
+                      target-type (r/ret-t (u/expr-type ctarget))]
+                  ;                (prn "check target" (prs/unparse-type target-type opts)
                   ;                     (prs/unparse-type (c/RClass-of (coerce/Class->symbol (resolve (:declaring-class method))) nil opts) opts))
-                  (when-not (sub/subtype? (r/ret-t (u/expr-type ctarget)) (c/RClass-of-with-unknown-params target-class opts) opts)
+                  ;; When the target type is Top (Any/Object), the method was resolved
+                  ;; via a type hint — trust the analyzer's resolution.
+                  ;; Also handle Union: check if ALL members of the union are subtypes.
+                  (when-not (or (r/Top? target-type)
+                                (sub/subtype? target-type (c/RClass-of-with-unknown-params target-class opts) opts))
                     (err/tc-delayed-error (str "Cannot call instance method " (cu/Method->symbol method)
-                                             " on type " (pr-str (prs/unparse-type (r/ret-t (u/expr-type ctarget)) opts)))
+                                             " on type " (pr-str (prs/unparse-type target-type opts)))
                                           {:form (ast-u/emit-form-fn expr opts)}
                                           opts))))
             result-type (funapp/check-funapp expr args (r/ret rfin-type) (map u/expr-type args) expected {} opts)
