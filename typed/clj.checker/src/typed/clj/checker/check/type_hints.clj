@@ -20,7 +20,7 @@
                   (c/fully-resolve-type targett opts))
         cls (cond
               constructor-call (coerce/symbol->Class constructor-call)
-              :else (cu/Type->Class targett))]
+              targett (cu/Type->Class targett))]
     (when cls
       (let [r (reflect-u/reflect cls)
             {methods clojure.reflect.Method
