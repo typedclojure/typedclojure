@@ -180,9 +180,12 @@
                                 {:keys [top-level-form-string ns-form-string] :as opts}]
   (get-in (env/deref-checker (env/checker opts)) (cache-info-id env opts)))
 
+(defn cache-enabled? []
+  (-> *ns* meta :typed.clojure :experimental :cache boolean))
+
+;; assumes (cache-enabled?) == true
 (defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opt} opts]
-  (or (-> *ns* meta :typed.clojure :experimental :cache not)
-      (some? expected)
+  (or (some? expected)
       (not ns-form-string)
       (not top-level-form-string)
       (if-some [cache-info (retrieve-form-cache-info expr expected opts)]
@@ -194,11 +197,12 @@
           (println "need-to-check-top-level-expr?: did not find cache info")
           true))))
 
+;assumes (cache-enabled?) == true
 (defn- record-cache! [{::keys [cache-info env] :as cexpr}
                       {:keys [form env] :as original}
                       {:keys [top-level-form-string ns-form-string] :as opt}
                       opts]
-  (when (-> *ns* meta :typed.clojure :experimental :cache)
+  (do
     (if (::errors cache-info)
       (println "cache: Not caching form due to type error")
       (println "cache: Caching form with cache info"))
@@ -237,8 +241,13 @@
                                (assoc :slurped slurped)))))))
 
 (defn check-top-level-expr [expr expected opt opts]
-  (if (need-to-check-top-level-expr? expr expected opt opts)
-    (let [cexpr (with-recorded-deps expr expected opts)]
-      (when (not expected) (record-cache! cexpr expr opt opts))
-      cexpr)
-    expr))
+  (if (cache-enabled?)
+    ;; Cache active: use with-recorded-deps for dependency tracking
+    (if (need-to-check-top-level-expr? expr expected opt opts)
+      (let [cexpr (with-recorded-deps expr expected opts)]
+        (when (not expected) (record-cache! cexpr expr opt opts))
+        cexpr)
+      expr)
+    ;; Cache not active: skip monitoring overhead, check directly
+    (let [check-expr (::check/check-expr opts)]
+      (check-expr expr expected opts))))
