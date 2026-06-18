@@ -13,6 +13,7 @@ env:
 
 jobs:
   setup:
+    if: ${{ github.repository == 'typedclojure/typedclojure' || github.event_name != 'schedule' }}
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
