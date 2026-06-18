@@ -347,15 +347,14 @@ clojure.lang.Numbers/dec (t/IFn [Long -> Long]
                               [t/AnyInteger -> t/AnyInteger]
                               [t/Num -> t/Num])
 clojure.lang.Numbers/quotient (t/IFn [Long Long -> Long]
-                                   [(t/U Long Double) (t/U Long Double) -> Double]
                                    [t/AnyInteger t/AnyInteger -> t/AnyInteger]
                                    [t/Num t/Num -> t/Num])
 clojure.lang.Numbers/incP (t/IFn [Long -> (t/U clojure.lang.BigInt Long)]
-                               [Double -> Double]
+                               [Double -> Double] ;; (= Double/MAX_VALUE (inc' Double/MAX_VALUE))
                                [t/AnyInteger -> t/AnyInteger]
                                [t/Num -> t/Num])
 clojure.lang.Numbers/decP (t/IFn [Long -> (t/U clojure.lang.BigInt Long)]
-                               [Double -> Double]
+                               [Double -> Double] ;; (= (- Double/MAX_VALUE) (dec' (- Double/MAX_VALUE)))
                                [t/AnyInteger -> t/AnyInteger]
                                [t/Num -> t/Num])
 clojure.lang.Numbers/unchecked_inc (t/IFn [Long -> Long]
@@ -379,7 +378,7 @@ clojure.lang.Numbers/unchecked_minus (t/IFn
                                        [t/Num t/Num -> t/Num]
                                        ; subtract
                                        [Long Long -> Long]
-                                       [(t/U Long Double) (t/U Long Double) -> Double]
+                                       [(t/U Long Double) (t/U Long Double) -> (t/U Long Double)]
                                        [t/AnyInteger -> t/AnyInteger]
                                        [t/Num -> t/Num])
 clojure.lang.Numbers/minus (t/IFn
@@ -390,25 +389,22 @@ clojure.lang.Numbers/minus (t/IFn
                              [t/Num -> t/Num]
                              ;minus
                              [Long Long -> Long]
-                             [(t/U Double Long) (t/U Double Long) -> Long]
+                             [(t/U Double Long) (t/U Double Long) -> (t/U Long Double)]
                              [t/AnyInteger t/AnyInteger -> t/AnyInteger]
                              [t/Num t/Num -> t/Num])
 clojure.lang.Numbers/unchecked_multiply (t/IFn [Long Long -> Long]
-                                             [(t/U Long Double) (t/U Long Double) -> Double]
+                                             [(t/U Long Double) (t/U Long Double) -> (t/U Long Double)]
                                              [t/AnyInteger t/AnyInteger -> t/AnyInteger]
                                              [t/Num t/Num -> t/Num])
 clojure.lang.Numbers/unchecked_int_multiply [t/Num t/Num -> t/AnyInteger]
 clojure.lang.Numbers/unchecked_int_divide [t/Num t/Num -> t/AnyInteger]
 clojure.lang.Numbers/unchecked_int_remainder [t/Num t/Num -> t/AnyInteger]
-clojure.lang.Numbers/remainder [t/Num t/Num -> t/AnyInteger]
+clojure.lang.Numbers/remainder [t/Num t/Num -> t/Num]
 clojure.lang.Numbers/multiply (t/IFn [Long Long -> Long]
-                                   [(t/U Double Long) (t/U Double Long) -> Double]
+                                   [(t/U Double Long) (t/U Double Long) -> (t/U Double Long)]
                                    [t/AnyInteger t/AnyInteger -> t/AnyInteger]
                                    [t/Num t/Num -> t/Num])
-clojure.lang.Numbers/divide (t/IFn [Long Long -> Long]
-                                   [(t/U Double Long) (t/U Double Long) -> Double]
-                                   [t/AnyInteger t/AnyInteger -> t/AnyInteger]
-                                   [t/Num t/Num -> t/Num])
+clojure.lang.Numbers/divide [t/Num t/Num -> t/Num]
       ;bit-not
 clojure.lang.Numbers/not [t/AnyInteger -> Long]
 ;bit-and
