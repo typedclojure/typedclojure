@@ -18,9 +18,7 @@
   </licenses>
 
   <properties>
-    <!-- https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <!--<project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>-->
-    <project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>{◊typedclojure-current-mvn-version-timestamp◊}</project.build.outputTimestamp>
     <dateFormatTimeZone>UTC</dateFormatTimeZone>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <revision>{◊typedclojure-current-mvn-version◊}</revision>
@@ -108,17 +106,9 @@
   <modules>
     <module>typed/clj.analyzer</module>
     <module>typed/cljc.analyzer</module>
-    <module>typed/cljs.analyzer</module>
-
     <module>typed/clj.checker</module>
-    <module>typed/cljs.checker</module>
-
     <module>typed/clj.runtime</module>
-    <module>typed/cljs.runtime</module>
-
     <module>typed/malli</module>
-    <module>typed/clj.spec</module>
-
     <module>typed/lib.clojure</module>
     <module>typed/lib.core.async</module>
     <module>typed/lib.spec.alpha</module>

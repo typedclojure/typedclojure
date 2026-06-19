@@ -20,9 +20,15 @@
       slurp
       str/trim))
 
+(defn typedclojure-current-version-timestamp []
+  (-> (str repo-root "/current-version-timestamp")
+      slurp
+      str/trim))
+
 ;; add new deps to `dev/resources/root-templates/dependabot/pom.xml` for dependabot support
 (def selmer-input-map
-  {:clojure-mvn-version "1.12.3"
+  {:typedclojure-current-mvn-version-timestamp (typedclojure-current-version-timestamp)
+   :clojure-mvn-version "1.12.3"
    :clojure-next-release-mvn-version nil #_"1.12.0-alpha1"
    :clojure-next-snapshot-mvn-version "1.13.0-master-SNAPSHOT"
    :min-supported-jdk "21"
