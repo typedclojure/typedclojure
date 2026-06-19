@@ -87,31 +87,27 @@
    {:post [(-> % u/expr-type r/TCResult?)
            (vector? (:bindings %))]}
    (cond
-     (and is-loop (seq bindings) (not expected-bnds))
-     (do
-       (err/tc-delayed-error "Loop requires more annotations" opts)
-       (assoc expr
-              u/expr-type (or expected (r/ret (r/Bottom)))))
      :else
      (let [is-reachable (volatile! true)
-           [env cbindings]
+           [env cbindings expected-bnds]
            (reduce
-             (fn [[env cbindings] [n expected-bnd]]
+             (fn [[env cbindings expected-bnds] [n expected-bnd]]
                {:pre [@is-reachable
                       (lex/PropEnv? env)
-                      ((some-fn nil? r/Type?) expected-bnd)
-                      (= (boolean expected-bnd) (boolean is-loop))]
-                :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
+                      ((some-fn nil? r/Type?) expected-bnd)]
+                :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector? vector?)) %)]}
                (let [expr (get cbindings n)
                      ; check rhs
                      {sym :name :as cexpr} (check-expr expr (when is-loop
-                                                              (r/ret expected-bnd))
+                                                              (some-> expected-bnd r/ret))
                                                        (var-env/with-lexical-env opts env))
-                     new-env (update-env env sym (u/expr-type cexpr) is-reachable opts)
+                     expected-bnd (when is-loop
+                                    (or expected-bnd (-> cexpr u/expr-type r/ret-t)))
+                     new-env (update-env env sym (if is-loop (r/ret expected-bnd) (u/expr-type cexpr)) is-reachable opts)
                      maybe-reduced (if @is-reachable identity reduced)]
                  (maybe-reduced
-                   [new-env (assoc cbindings n cexpr)])))
-             [(lex/lexical-env opts) bindings]
+                   [new-env (assoc cbindings n cexpr) (conj expected-bnds expected-bnd)])))
+             [(lex/lexical-env opts) bindings []]
              (map vector
                   (range (count bindings))
                   (or expected-bnds

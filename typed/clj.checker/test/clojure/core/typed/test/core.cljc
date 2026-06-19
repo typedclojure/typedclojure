@@ -1249,9 +1249,7 @@
 
 (deftest loop-errors-test
   (is (caught-top-level-errors #{1}
-        (cf (loop [a 1] a))))
-  (is (caught-top-level-errors #{1}
-        (cf (loop [a :- String, 1] a)))))
+        (cf (clojure.core.typed/loop [a :- String, 1] a)))))
 
 (deftest letfn>-test
   (is-tc-e (letfn> [a :- [Number -> Number]
