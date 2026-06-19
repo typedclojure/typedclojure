@@ -204,3 +204,22 @@
                (let [v (.hasRoot v)]
                  v)
                nil))))
+
+(deftest let-binding-types-on-ast-test
+  ;; Per-binding types are exposed on the checked let AST node's :bindings,
+  ;; like let*/loop* — so tools consuming the AST can read each binding's
+  ;; inferred type (e.g. to drive downstream code generation).
+  (let [etk :typed.cljc.checker.utils/expr-type
+        ast (:checked-ast (t/check-form-info '(let [x 1 y "a"] y) :checked-ast true))
+        acc (atom {})]
+    (letfn [(walk [n]
+              (when (map? n)
+                (when (= :let (:op n))
+                  (doseq [b (:bindings n)]
+                    (when-let [tcr (get b etk)]
+                      (swap! acc assoc (:form b) (:t tcr)))))
+                (doseq [k (:children n)]
+                  (let [v (get n k)] (if (vector? v) (run! walk v) (walk v))))))]
+      (walk ast))
+    (is (contains? @acc 'x) "binding x's type is on the checked AST")
+    (is (contains? @acc 'y) "binding y's type is on the checked AST")))

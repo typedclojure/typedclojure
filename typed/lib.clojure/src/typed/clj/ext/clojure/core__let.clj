@@ -342,8 +342,28 @@
               (-> (pad-vector expanded-bindings bvec)
                   (with-meta (meta bvec)))))))
 
+(defn- check-let-via-let*
+  "Check a no-destructuring clojure.core/let by rewriting it to let* and checking
+  normally. Simple-symbol binders are already valid let* binders, so this is a
+  plain let->let* rename. The result is a fully-checked :let AST node, so each
+  binding's type lands on the checked binding AST node (exactly like let*/loop*)
+  and occurrence typing / object propagation go through the standard path —
+  unlike re-emitting a form, where the binding types are lost when run-passes
+  re-analyzes it."
+  [{ana-env :env :keys [form]} expected {::check/keys [check-expr] :as opts}]
+  (let [[_ bvec & body-syns] form]
+    (-> (list* 'let* bvec body-syns)
+        (with-meta (meta form))
+        (ana2/unanalyzed ana-env opts)
+        (check-expr expected opts))))
+
 (defuspecial defuspecial__let
-  "defuspecial implementation for clojure.core/let"
+  "defuspecial implementation for clojure.core/let.
+
+  No destructuring → check via let* so per-binding types land on the checked
+  binding AST nodes (like let*/loop*) and occurrence typing works the standard
+  way. With destructuring → keep the bespoke destructure-aware check, which
+  produces TC's friendly destructuring type errors."
   [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
   (assert check-expr)
   (let [_ (assert (next form)
@@ -352,31 +372,37 @@
         _ (assert (vector? bvec)
                   (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
         _ (assert (even? (count bvec))
-                  (str "Uneven binding vector passed to clojure.core/let: " bvec))
-        {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
-        (check-let-bindings
-          {:new-syms #{}
-           :prop-env (lex/lexical-env opts)
-           :ana-env ana-env}
-          bvec
-          opts)]
-    (cond
-      (not reachable) (assoc expr 
-                             :form (-> (list* (first form)
-                                              expanded-bindings
-                                              body-syns)
-                                       (with-meta (meta form)))
-                             u/expr-type (or expected (r/ret (r/Bottom))))
-      :else (let [cbody (let [body (-> `(do ~@body-syns)
-                                       (ana2/unanalyzed ana-env opts))
-                              opts (var-env/with-lexical-env opts prop-env)]
-                          (let [opts (assoc opts ::vs/current-expr body)]
-                            (-> body
-                                (check-expr expected opts))))
-                  unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
-              (assoc expr
-                     :form (-> (list (first form)
-                                     expanded-bindings
-                                     (emit-form/emit-form cbody opts))
-                               (with-meta (meta form)))
-                     u/expr-type unshadowed-ret)))))
+                  (str "Uneven binding vector passed to clojure.core/let: " bvec))]
+    (if (every? simple-symbol? (take-nth 2 bvec))
+      ;; Check via let* so per-binding types land on the checked binding AST
+      ;; nodes. defuspecial's wrapper re-establishes top-level Gilardi evaluation
+      ;; for this analyzed result, so inner top-level defs (defmulti/defrecord)
+      ;; are still evaluated.
+      (check-let-via-let* expr expected opts)
+      (let [{:keys [prop-env ana-env expanded-bindings new-syms reachable]}
+            (check-let-bindings
+              {:new-syms #{}
+               :prop-env (lex/lexical-env opts)
+               :ana-env ana-env}
+              bvec
+              opts)]
+        (cond
+          (not reachable) (assoc expr
+                                 :form (-> (list* (first form)
+                                                  expanded-bindings
+                                                  body-syns)
+                                           (with-meta (meta form)))
+                                 u/expr-type (or expected (r/ret (r/Bottom))))
+          :else (let [cbody (let [body (-> `(do ~@body-syns)
+                                           (ana2/unanalyzed ana-env opts))
+                                  opts (var-env/with-lexical-env opts prop-env)]
+                              (let [opts (assoc opts ::vs/current-expr body)]
+                                (-> body
+                                    (check-expr expected opts))))
+                      unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
+                  (assoc expr
+                         :form (-> (list (first form)
+                                         expanded-bindings
+                                         (emit-form/emit-form cbody opts))
+                                   (with-meta (meta form)))
+                         u/expr-type unshadowed-ret)))))))
