@@ -27,10 +27,6 @@
       <id>clojars</id>
       <url>https://repo.clojars.org/</url>
     </repository>
-    <repository>
-      <id>sonatype-oss-public</id>
-      <url>{◊sonatype-oss-public-url◊}</url>
-    </repository>
   </repositories>
 
   <!--

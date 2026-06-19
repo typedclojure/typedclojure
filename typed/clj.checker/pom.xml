@@ -27,17 +27,13 @@
       <id>clojars</id>
       <url>https://repo.clojars.org/</url>
     </repository>
-    <repository>
-      <id>sonatype-oss-public</id>
-      <url>https://oss.sonatype.org/content/groups/public/</url>
-    </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.12.1</version>
+      <version>1.12.3</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
@@ -57,7 +53,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
-      <version>1.5.0</version>
+      <version>1.5.1</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
@@ -67,12 +63,12 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>math.combinatorics</artifactId>
-      <version>0.2.0</version>
+      <version>0.3.2</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.reader</artifactId>
-      <version>1.5.0</version>
+      <version>1.6.0</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -82,7 +78,7 @@
     <dependency>
       <groupId>com.nextjournal</groupId>
       <artifactId>beholder</artifactId>
-      <version>1.0.2</version>
+      <version>1.0.3</version>
     </dependency>
     <dependency>
       <groupId>io.github.frenchy64</groupId>

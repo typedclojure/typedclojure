@@ -26,7 +26,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.12.1</version>
+      <version>1.12.3</version>
     </dependency>
   </dependencies>
 </project>
