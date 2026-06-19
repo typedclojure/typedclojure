@@ -43,8 +43,19 @@
     ;(prn `-unanalyzed-special-dispatch form res)
     res))
 
-(defn run-passes+propagate-expr-type [expr opts]
-  (-> expr
+(defn run-passes+propagate-expr-type [expr orig-expr opts]
+  (-> (cond-> expr
+        ;; A defuspecial rule may hand back an already-analyzed node. That skips
+        ;; the :unanalyzed->analyzed transition where `propagate-top-level` marks
+        ;; top-level forms for Gilardi evaluation, so without this an analyzed
+        ;; top-level result would never be evaluated — violating the documented
+        ;; "implicitly evaluated after control returns" contract (e.g. a rule that
+        ;; returns a checked `(let [v (def f)] ...)` would not define `f`).
+        ;; Re-establish the mark from the original (top-level?) expr.
+        (and (ana2/top-level? orig-expr)
+             (not= :unanalyzed (:op expr))
+             (not (ana2/eval-top-level? expr)))
+        ana2/mark-eval-top-level)
       (ana2/run-passes opts)
       (into (select-keys expr [u/expr-type]))))
 
@@ -112,12 +123,17 @@
         [argv args] (if (vector? (first args))
                       ((juxt first rest) args)
                       [nil args])
-        gopts (gensym 'opts)]
+        gopts (gensym 'opts)
+        gexpr (gensym 'expr)]
     (assert (vector? argv))
     (assert (not-any? #{'&} argv))
     (assert (= 3 (count argv)))
     `(defn ~vsym
        ~@(when doc [doc])
-       ~(-> argv pop (conj gopts))
-       (some-> (let [~(peek argv) ~gopts] ~@args)
-               (run-passes+propagate-expr-type ~gopts)))))
+       [~gexpr ~(nth argv 1) ~gopts]
+       (some-> (let [~(nth argv 0) ~gexpr
+                     ~(nth argv 2) ~gopts]
+                 ~@args)
+               ;; pass the original (pre-rule) expr so the wrapper can recover its
+               ;; top-level status for Gilardi evaluation (see run-passes+…).
+               (run-passes+propagate-expr-type ~gexpr ~gopts)))))
