@@ -207,6 +207,29 @@
                               expected
                               opts))))
 
+        ; literal index, but the target type cannot be passed to nth at all
+        ; (it is not Indexed / SequentialSeqable / nil). Without this guard the
+        ; polymorphic nth-function-type application in the next branch fails to
+        ; find a matching arity and throws an internal "No bounds for" error
+        ; (e.g. (nth #{1 2} 0 nil)). Emit a clean delayed type error instead.
+        ; This also covers destructuring of a non-indexable value, which expands
+        ; to (nth target idx nil); when a ::destructure-blame-form rides on the
+        ; target it is used to blame the original destructuring syntax.
+        (and (nat-value? num-t)
+             (not (every? #(valid-first-arg-for-3-arity-nth? % opts) types)))
+        (let [blame (some-> te :form meta :clojure.core.typed.internal/destructure-blame-form)]
+          (err/tc-delayed-error
+            (str "Cannot use nth to index a value of type `"
+                 (prs/unparse-type (expr->type te) opts)
+                 "` (expected an Indexed, SequentialSeqable, or nil value)")
+            (cond-> {:return (assoc expr
+                                    u/expr-type (below/maybe-check-below
+                                                  (r/ret (or default-t r/-any))
+                                                  expected
+                                                  opts))}
+              blame (assoc :blame-form blame))
+            opts))
+
         ; rewrite nth type to be more useful when we have an exact (and interesting) index.
         (nat-value? num-t)
         (let [ft (nth-function-type (-> num-t :val) opts)
