@@ -81,6 +81,23 @@
           ret
           syms))
 
+(defn widen-loop-binding-init
+  "Type for an unannotated loop binding, inferred from its init expression.
+
+  A singleton Value type (e.g. (Val 0) from the literal 0) is too narrow to be a
+  loop invariant: the binding must hold for every iteration, but recur passes a
+  value that differs from the init (e.g. (recur (inc i)) passes (Val 1)). Widen a
+  Value type to the concrete class of its value (Long for 0, Double for 0.0, ...)
+  so the common accumulator loop checks while keeping the primitive class — which
+  consumers reading per-binding types off the AST rely on. Non-Value types are
+  already general enough (or the user can annotate)."
+  [t opts]
+  {:pre [(r/Type? t)]
+   :post [(r/Type? %)]}
+  (if (and (r/Value? t) (some? (:val t)))
+    (c/RClass-of (class (:val t)) opts)
+    t))
+
 (defn check-let
   ([expr expected opts] (check-let expr expected {} opts))
   ([{:keys [body bindings] :as expr} expected {is-loop :loop? :keys [expected-bnds]} {::check/keys [check-expr] :as opts}]
@@ -102,7 +119,8 @@
                                                               (some-> expected-bnd r/ret))
                                                        (var-env/with-lexical-env opts env))
                      expected-bnd (when is-loop
-                                    (or expected-bnd (-> cexpr u/expr-type r/ret-t)))
+                                    (or expected-bnd
+                                        (widen-loop-binding-init (-> cexpr u/expr-type r/ret-t) opts)))
                      new-env (update-env env sym (if is-loop (r/ret expected-bnd) (u/expr-type cexpr)) is-reachable opts)
                      maybe-reduced (if @is-reachable identity reduced)]
                  (maybe-reduced
