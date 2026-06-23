@@ -204,3 +204,37 @@
                (let [v (.hasRoot v)]
                  v)
                nil))))
+
+(defn- binding-types-on-ast
+  "Map of {binding-sym → its checked TCResult type} read off every :let binding
+  node of the checked AST for `form`."
+  [form]
+  (let [etk :typed.cljc.checker.utils/expr-type
+        ast (:checked-ast (t/check-form-info form :checked-ast true))
+        acc (atom {})]
+    (letfn [(walk [n]
+              (when (map? n)
+                (when (= :let (:op n))
+                  (doseq [b (:bindings n)]
+                    (when-let [tcr (get b etk)]
+                      (swap! acc assoc (:form b) (:t tcr)))))
+                (doseq [k (:children n)]
+                  (let [v (get n k)] (if (vector? v) (run! walk v) (walk v))))))]
+      (walk ast))
+    @acc))
+
+(deftest let-binding-types-on-ast-test
+  ;; Per-binding types are exposed on the checked let AST node's :bindings,
+  ;; like let*/loop* — so tools consuming the AST can read each binding's
+  ;; inferred type (e.g. to drive downstream code generation).
+  (let [acc (binding-types-on-ast '(let [x 1 y "a"] y))]
+    (is (contains? acc 'x) "binding x's type is on the checked AST")
+    (is (contains? acc 'y) "binding y's type is on the checked AST")))
+
+(deftest let-destructuring-binding-types-on-ast-test
+  ;; The leaf bindings of a destructuring pattern also expose their inferred
+  ;; type on the checked AST (the pattern is expanded to simple-symbol let*
+  ;; binders, each carrying u/expr-type).
+  (let [acc (binding-types-on-ast '(let [[a b] [1 "a"]] b))]
+    (is (contains? acc 'a) "destructured leaf binding a's type is on the checked AST")
+    (is (contains? acc 'b) "destructured leaf binding b's type is on the checked AST")))

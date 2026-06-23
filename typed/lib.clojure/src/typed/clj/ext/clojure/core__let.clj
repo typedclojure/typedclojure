@@ -342,9 +342,41 @@
               (-> (pad-vector expanded-bindings bvec)
                   (with-meta (meta bvec)))))))
 
+(defn- check-let-via-let*
+  "Expand a clojure.core/let one layer to a let* and check it normally
+  (analyze-outer + check-expr), the way core/fn and core/defn handle their
+  bodies. The result is a fully-checked :let node, so each binding's inferred
+  type lands on its binding AST node exactly like let*/loop* already expose them
+  (check/let.clj) — including the leaf bindings produced by a destructuring
+  pattern, which clojure.core/let expands to simple-symbol let* binders. Inner
+  top-level defs (defmulti/defrecord expansions that nest a let) are still
+  evaluated thanks to the defuspecial implicit-eval fix for analyzed results."
+  [expr expected {::check/keys [check-expr] :as opts}]
+  (-> expr
+      (ana2/analyze-outer opts)
+      (check-expr expected opts)))
+
 (defuspecial defuspecial__let
-  "defuspecial implementation for clojure.core/let"
-  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
+  "defuspecial implementation for clojure.core/let.
+
+  Goal: expose each binding's inferred type on the checked :let AST node (like
+  let*/loop*), including the leaf bindings of a destructuring pattern, so tools
+  consuming the AST can read per-binding types.
+
+  No destructuring: expand to let* and check normally (check-let-via-let*) — the
+  checked :let node carries per-binding types directly.
+
+  Destructuring: first run the bespoke destructure-aware check
+  (check-let-bindings), which produces TypedClojure's friendly destructure type
+  errors (a raw nth-based macroexpansion would only give a generic nth error).
+  If that pass is clean and reachable, re-check via check-let-via-let* so the
+  per-binding types land on the AST; the clean re-check adds no new errors. If it
+  is not clean (a destructure type error) or unreachable, keep the bespoke result
+  so the friendly error is the one surfaced.
+
+  check-let-bindings / update-destructure-env remain for core/for, which drives
+  them directly."
+  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] ::vs/keys [type-errors] :as opts}]
   (assert check-expr)
   (let [_ (assert (next form)
                   (str "Expected 1 or more arguments to clojure.core/let: " form))
@@ -352,31 +384,41 @@
         _ (assert (vector? bvec)
                   (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
         _ (assert (even? (count bvec))
-                  (str "Uneven binding vector passed to clojure.core/let: " bvec))
-        {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
-        (check-let-bindings
-          {:new-syms #{}
-           :prop-env (lex/lexical-env opts)
-           :ana-env ana-env}
-          bvec
-          opts)]
-    (cond
-      (not reachable) (assoc expr 
-                             :form (-> (list* (first form)
-                                              expanded-bindings
-                                              body-syns)
-                                       (with-meta (meta form)))
-                             u/expr-type (or expected (r/ret (r/Bottom))))
-      :else (let [cbody (let [body (-> `(do ~@body-syns)
-                                       (ana2/unanalyzed ana-env opts))
-                              opts (var-env/with-lexical-env opts prop-env)]
-                          (let [opts (assoc opts ::vs/current-expr body)]
-                            (-> body
-                                (check-expr expected opts))))
-                  unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
-              (assoc expr
-                     :form (-> (list (first form)
-                                     expanded-bindings
-                                     (emit-form/emit-form cbody opts))
-                               (with-meta (meta form)))
-                     u/expr-type unshadowed-ret)))))
+                  (str "Uneven binding vector passed to clojure.core/let: " bvec))]
+    (if (every? simple-symbol? (take-nth 2 bvec))
+      ;; No destructuring: nothing bespoke to preserve, check directly.
+      (check-let-via-let* expr expected opts)
+      ;; Destructuring: bespoke pass for friendly errors, then expose types on a
+      ;; clean check.
+      (let [err-before (count (some-> type-errors deref))
+            {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
+            (check-let-bindings
+              {:new-syms #{}
+               :prop-env (lex/lexical-env opts)
+               :ana-env ana-env}
+              bvec
+              opts)
+            clean? (and reachable
+                        (= err-before (count (some-> type-errors deref))))]
+        (if clean?
+          (check-let-via-let* expr expected opts)
+          (cond
+            (not reachable) (assoc expr
+                                   :form (-> (list* (first form)
+                                                    expanded-bindings
+                                                    body-syns)
+                                             (with-meta (meta form)))
+                                   u/expr-type (or expected (r/ret (r/Bottom))))
+            :else (let [cbody (let [body (-> `(do ~@body-syns)
+                                             (ana2/unanalyzed ana-env opts))
+                                    opts (var-env/with-lexical-env opts prop-env)]
+                                (let [opts (assoc opts ::vs/current-expr body)]
+                                  (-> body
+                                      (check-expr expected opts))))
+                        unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
+                    (assoc expr
+                           :form (-> (list (first form)
+                                           expanded-bindings
+                                           (emit-form/emit-form cbody opts))
+                                     (with-meta (meta form)))
+                           u/expr-type unshadowed-ret))))))))
