@@ -182,6 +182,17 @@
 (declare symbol->PArray)
 
 ;[t/Sym Boolean -> Type]
+(defn- value-class?
+  "True if Class c is a Valhalla value class. Value-typed fields and value-class
+  array elements are non-nullable, so they must not widen to (U X nil) — otherwise
+  field-access chains through them (e.g. (.-field (aget value-class-array i)))
+  fail host-interop resolution and never type-check. Reflective so it no-ops on
+  identity-only (non-Valhalla) JDKs where the predicate is simply always false."
+  [c]
+  (and (class? c)
+       (try (boolean (clojure.lang.Reflector/invokeInstanceMethod c "isValue" (object-array 0)))
+            (catch Throwable _ false))))
+
 (defn Java-symbol->Type [sym nilable? opts]
   {:pre [(symbol? sym)
          (boolean? nilable?)]
@@ -190,7 +201,8 @@
       (symbol->PArray sym nilable? opts)
       (when-let [cls (resolve sym)]
         (c/Un (cons (c/RClass-of-with-unknown-params cls opts)
-                    (when nilable?
+                    ;; Valhalla value classes are non-nullable.
+                    (when (and nilable? (not (value-class? cls)))
                       [r/-nil]))
               opts))
       (err/tc-delayed-error (str "Method or field symbol " sym " does not resolve to a type") opts)))
