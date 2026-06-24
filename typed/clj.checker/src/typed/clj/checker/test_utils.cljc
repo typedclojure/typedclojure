@@ -34,7 +34,9 @@
        (run! remove-ns @*remove-nsyms*)
        res#)))
 
-(defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax :keys [expected-ret requires ns-meta check-config] :as opt}]
+(defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax
+                       :keys [expected-ret requires ns-meta check-config checked-ast]
+                       :as opt}]
   (check-opt opt)
   (let [file *file*
         nsym (gensym 'clojure.core.typed.test.temp)
@@ -64,7 +66,8 @@
                       :expected-ret expected-ret#
                       :expected '~syn
                       :type-provided? ~provided?
-                      :check-config check-config#)]
+                      :check-config check-config#
+                      :checked-ast ~(boolean checked-ast))]
            (or (some-> *remove-nsyms* (swap! conj '~nsym))
                (remove-ns '~nsym))
            res#)))))
@@ -239,6 +242,12 @@
        (throw ex#)
        ret#)))
 
+(defmacro tc-ast [form]
+  `(let [{ex# :ex checked-ast# :checked-ast} ~(tc-common* form {:checked-ast true})]
+     (if ex#
+       (throw ex#)
+       checked-ast#)))
+
 (defmacro tc [form]
   `(t/check-form* '~form))
 
@@ -249,7 +258,7 @@
   [& body]
   `(let [s# (java.io.StringWriter.)]
      (binding [*err* s#]
-       ~@body
+       (do ~@body)
        (str s#))))
 
 ;; from clojure.test-helper
@@ -260,7 +269,7 @@
   `(let [s# (java.io.StringWriter.)
          p# (java.io.PrintWriter. s#)]
      (binding [*err* p#]
-       ~@body
+       (do ~@body)
        (str s#))))
 
 ;; from clojure.test-helper

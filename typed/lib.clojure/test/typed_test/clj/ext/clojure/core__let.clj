@@ -2,7 +2,9 @@
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (deftest let-test
   (is-tc-e (let [a 1] a) t/Int)
@@ -204,3 +206,21 @@
                (let [v (.hasRoot v)]
                  v)
                nil))))
+
+(deftest let-to-let*-test
+  (testing "no destructuring"
+    (let [ast (tc-ast (let [a 1 b 2] a))]
+      (is (= :let (:op ast)))
+      (is (= [(r/-val 1) (r/-val 2)]
+             (mapv (comp :t u/expr-type) (:bindings ast))))
+      (is (= :local (-> ast :body :ret :op)))
+      (is (= (r/-val 1) (-> ast :body :ret u/expr-type :t)))))
+  (testing "destructured"
+    (let [ast (tc-ast (let [{:keys [a]} {:a 1}] a))]
+      (is (= :let (:op ast)))
+      ;;FIXME missing types
+      (is (= [nil nil nil]
+             (mapv (comp :t u/expr-type) (:bindings ast))))
+      (is (= :local (-> ast :body :ret :ret :op)))
+      ;;FIXME missing type
+      (is (= nil (-> ast :body :ret :ret u/expr-type :t))))))
