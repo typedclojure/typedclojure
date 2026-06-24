@@ -81,6 +81,16 @@
           ret
           syms))
 
+(defn widen-loop-init [t opts]
+  {:pre [(r/Type? t)]
+   :post [(r/Type? %)]}
+  (or (when (r/Value? t)
+        (let [{:keys [val]} t]
+          (when (or (instance? Long val)
+                    (instance? Double val))
+            (c/RClass-of (class val) opts))))
+      t))
+
 (defn check-let
   ([expr expected opts] (check-let expr expected {} opts))
   ([{:keys [body bindings] :as expr} expected {is-loop :loop? :keys [expected-bnds]} {::check/keys [check-expr] :as opts}]
@@ -102,7 +112,8 @@
                                                               (some-> expected-bnd r/ret))
                                                        (var-env/with-lexical-env opts env))
                      expected-bnd (when is-loop
-                                    (or expected-bnd (-> cexpr u/expr-type r/ret-t)))
+                                    (or expected-bnd
+                                        (-> cexpr u/expr-type r/ret-t (widen-loop-init opts))))
                      new-env (update-env env sym (if is-loop (r/ret expected-bnd) (u/expr-type cexpr)) is-reachable opts)
                      maybe-reduced (if @is-reachable identity reduced)]
                  (maybe-reduced
