@@ -342,17 +342,9 @@
               (-> (pad-vector expanded-bindings bvec)
                   (with-meta (meta bvec)))))))
 
-(defuspecial defuspecial__let
-  "defuspecial implementation for clojure.core/let"
+(defn check-destructured-let
   [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (assert check-expr)
-  (let [_ (assert (next form)
-                  (str "Expected 1 or more arguments to clojure.core/let: " form))
-        [bvec & body-syns] (next form)
-        _ (assert (vector? bvec)
-                  (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
-        _ (assert (even? (count bvec))
-                  (str "Uneven binding vector passed to clojure.core/let: " bvec))
+  (let [[bvec & body-syns] (next form)
         {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
         (check-let-bindings
           {:new-syms #{}
@@ -380,3 +372,22 @@
                                      (emit-form/emit-form cbody opts))
                                (with-meta (meta form)))
                      u/expr-type unshadowed-ret)))))
+
+(defuspecial defuspecial__let
+  "defuspecial implementation for clojure.core/let"
+  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
+  (let [_ (assert (next form)
+                  (str "Expected 1 or more arguments to clojure.core/let: " form))
+        [bvec & body-syns] (next form)
+        _ (assert (vector? bvec)
+                  (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
+        _ (assert (even? (count bvec))
+                  (str "Uneven binding vector passed to clojure.core/let: " bvec))
+        destructured? (not-every? #(symbol? (nth bvec %))
+                                  (range 0 (/ (count bvec) 2) 2))]
+    (if destructured?
+      ;; TODO always expand into let*, ideally in a single pass plus enhanced error messages
+      (check-destructured-let expr expected opts)
+      (-> expr
+          (ana2/analyze-outer opts)
+          (check-expr expected opts)))))
