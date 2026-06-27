@@ -20,6 +20,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana]
             [typed.cljc.checker.lex-env :as lex-env]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
@@ -146,11 +147,25 @@
         (and c-ast emit-form (not ex))
         (assoc :out-form (emit-form c-ast opts))))))
 
+(defn- resolve-top-level-type
+  "Eagerly resolve resolvable types (e.g., MatchType with concrete target)
+  in the top-level result for better user-facing display."
+  [ret opts]
+  (let [t (r/ret-t ret)]
+    (if (and (r/MatchType? t)
+             (c/Match-can-resolve? t opts))
+      (let [resolved (try (c/-resolve t opts)
+                          (catch #?(:cljr Exception :default Throwable) _ nil))]
+        (if resolved
+          (r/ret resolved (r/ret-f ret) (r/ret-o ret))
+          ret))
+      ret)))
+
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt opts]
   {:pre [(map? opt)]}
   (let [{:keys [ex type-errors ret]} (check-form-info config form
-                                                         (into {:expected expected 
+                                                         (into {:expected expected
                                                                 :type-provided? type-provided?}
                                                                opt)
                                                          opts)]
@@ -163,7 +178,7 @@
           (throw ex))
       (if (seq type-errors)
         (err/print-errors! type-errors opts)
-        (prs/unparse-TCResult-in-ns ret unparse-ns opts)))))
+        (prs/unparse-TCResult-in-ns (resolve-top-level-type ret opts) unparse-ns opts)))))
 
 (defn check-form-info-with-config
   [config form opt opts]
