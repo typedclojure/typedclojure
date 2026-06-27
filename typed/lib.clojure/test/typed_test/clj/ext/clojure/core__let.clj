@@ -3,7 +3,9 @@
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer :all]
+            [typed.clj.runtime.env :refer [clj-opts]]
             [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]))
 
 (deftest let-test
@@ -218,9 +220,9 @@
   (testing "destructured"
     (let [ast (tc-ast (let [{:keys [a]} {:a 1}] a))]
       (is (= :let (:op ast)))
-      ;;FIXME missing types
-      (is (= [nil nil nil]
+      (is (= [(c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
+              (c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
+              (r/-val 1)]
              (mapv (comp :t u/expr-type) (:bindings ast))))
-      (is (= :local (-> ast :body :ret :ret :op)))
-      ;;FIXME missing type
-      (is (= nil (-> ast :body :ret :ret u/expr-type :t))))))
+      (is (= :local (-> ast :body :ret :op)))
+      (is (= (r/-val 1) (-> ast :body :ret u/expr-type :t))))))

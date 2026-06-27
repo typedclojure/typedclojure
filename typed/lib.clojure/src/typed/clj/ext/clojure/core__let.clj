@@ -384,10 +384,19 @@
         _ (assert (even? (count bvec))
                   (str "Uneven binding vector passed to clojure.core/let: " bvec))
         destructured? (not-every? #(symbol? (nth bvec %))
-                                  (range 0 (/ (count bvec) 2) 2))]
+                                  (range 0 (/ (count bvec) 2) 2))
+        check-via-expansion #(-> expr
+                                 (ana2/analyze-outer opts)
+                                 (check-expr expected opts))]
     (if destructured?
-      ;; TODO always expand into let*, ideally in a single pass plus enhanced error messages
-      (check-destructured-let expr expected opts)
+      (let [type-errors (err/-init-type-errors)
+            cexpr (-> expr
+                      (ana2/analyze-outer opts)
+                      (check-expr expected (assoc opts ::vs/type-errors type-errors)))]
+        (if (empty? @type-errors)
+          cexpr
+          ;; recheck in the hope that type errors from destructuring are improved
+          (check-destructured-let expr expected opts)))
       (-> expr
           (ana2/analyze-outer opts)
           (check-expr expected opts)))))
