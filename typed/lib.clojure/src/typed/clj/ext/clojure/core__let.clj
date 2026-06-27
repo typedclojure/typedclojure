@@ -395,10 +395,7 @@
         _ (assert (even? (count bvec))
                   (str "Uneven binding vector passed to clojure.core/let: " bvec))
         destructured? (not-every? #(symbol? (nth bvec %))
-                                  (range 0 (/ (count bvec) 2) 2))
-        check-via-expansion #(-> expr
-                                 (ana2/analyze-outer opts)
-                                 (check-expr expected opts))]
+                                  (range 0 (/ (count bvec) 2) 2))]
     (if destructured?
       (let [type-errors (err/-init-type-errors)
             cexpr (-> expr
