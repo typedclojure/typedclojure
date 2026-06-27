@@ -185,14 +185,16 @@
                                                   (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))
                                         (#{:host-call} (:op expr))
                                         (update :target check-expr nil opts))
-          types (let [ts (c/fully-resolve-type (expr->type te) opts)]
-                  (if (r/Union? ts)
-                    (:types ts)
-                    [ts]))
+          target-t (c/fully-resolve-type (expr->type te) opts)
+          types (if (r/Union? target-t)
+                  (:types target-t)
+                  [target-t])
           num-t (expr->type ne)
           default-t (expr->type de)]
       ;(prn "nth" types)
       (cond
+        (not (valid-first-arg-for-3-arity-nth? target-t opts)) nil
+
         (and (nat-value? num-t)
              (let [super (c/Un [r/-nil r/-any-hsequential] opts)]
                (every? #(ind/subtype? % super opts)
