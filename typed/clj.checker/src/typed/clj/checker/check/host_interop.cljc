@@ -37,17 +37,17 @@
     (symbol (#?(:cljr Type/.FullName :default Class/.getName) class))))
 
 (defn add-type-hints
-  "Add type hints to an expression, only if it can
-  be preserved via emit-form to the Clojure compiler.
-
-  The most reliable AST node to convey a type hint
-  is :local, so we restrict adding type hints to only
-  :local nodes."
+  "Stamp a host-interop receiver's analyzer :tag / :o-tag from its TC-inferred
+  type, so subsequent host-interop resolution (analyze-host-expr, which keys off
+  :tag/:o-tag) can resolve it. Previously restricted to :local nodes; lifting the
+  restriction lets an inline receiver whose analyzer :tag is Object but whose
+  TC expr-type is a concrete class — e.g. (aget value-class-array i) typed as the
+  element class — resolve a following .-field access without first let-binding it.
+  Guarded by (obj? f) so only IObj forms receive the :tag form-metadata."
   [expr]
   (let [{:keys [t]} (u/expr-type expr)
         cls (cu/Type->Class t)]
-    (if (and cls
-             (= :local (:op expr)))
+    (if cls
       (-> expr
           (assoc :o-tag cls
                  :tag cls)
