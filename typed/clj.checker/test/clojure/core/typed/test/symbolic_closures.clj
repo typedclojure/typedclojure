@@ -970,8 +970,8 @@
              :env
              {:line "REMOVED_LINE", :column 30, :file "symbolic_closures.clj"},
              :form (inc 1),
-             :data {:expected-type nil, :actual-type Long},
-             :message "Type mismatch:\n\nExpected: \tnil\n\nActual: \tLong"}]}
+             :data {:expected-type nil, :actual-type (t/Val 2)},
+             :message "Type mismatch:\n\nExpected: \tnil\n\nActual: \t(t/Val 2)"}]}
          (is-tc-err-messages (inc 1) nil)))
   ;;TODO
   ;; expected: nil
