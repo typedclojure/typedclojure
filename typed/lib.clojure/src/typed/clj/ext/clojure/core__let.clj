@@ -13,6 +13,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.internal :as internal]
             [clojure.core.typed.util-vars :as vs]
+            [clojure.string :as str]
             [typed.cljc.checker.check.nth :as nth]
             [typed.cljc.checker.check :as check]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
@@ -373,6 +374,16 @@
                                (with-meta (meta form)))
                      u/expr-type unshadowed-ret)))))
 
+(defn destructuring-related-type-error? [{:keys [type-error form]}]
+  ;; vector destructuring
+  (and (= type-error :typed.clojure/app-type-error)
+       (seq? form)
+       (= (count form) 4)
+       (let [[op target] form]
+         (and (= op `nth)
+              (simple-symbol? target)
+              (str/starts-with? (name target) "vec__")))))
+
 (defuspecial defuspecial__let
   "defuspecial implementation for clojure.core/let"
   [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
@@ -386,8 +397,18 @@
         destructured? (not-every? #(symbol? (nth bvec %))
                                   (range 0 (/ (count bvec) 2) 2))]
     (if destructured?
-      ;; TODO always expand into let*, ideally in a single pass plus enhanced error messages
-      (check-destructured-let expr expected opts)
+      (let [type-errors (err/-init-type-errors)
+            cexpr (-> expr
+                      (ana2/analyze-outer opts)
+                      (check-expr expected (assoc opts ::vs/type-errors type-errors)))
+            type-errors @type-errors]
+        (if (not-any? destructuring-related-type-error? type-errors)
+          (do (when-not (empty? type-errors)
+                (swap! (::vs/type-errors opts) into type-errors))
+              cexpr)
+          ;; recheck in the hope that type errors from destructuring are improved
+          (do (println "Rechecking 'let' to improve destructuring error messages")
+              (check-destructured-let expr expected opts))))
       (-> expr
           (ana2/analyze-outer opts)
           (check-expr expected opts)))))
