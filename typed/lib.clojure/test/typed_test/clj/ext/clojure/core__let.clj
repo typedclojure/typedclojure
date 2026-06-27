@@ -3,7 +3,6 @@
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer :all]
-            [typed.clj.runtime.env :refer [clj-opts]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]))
@@ -218,11 +217,26 @@
       (is (= :local (-> ast :body :ret :op)))
       (is (= (r/-val 1) (-> ast :body :ret u/expr-type :t)))))
   (testing "destructured"
-    (let [ast (tc-ast (let [{:keys [a]} {:a 1}] a))]
+    (let [ast (volatile! nil)
+          out (with-out-str (vreset! ast (tc-ast (let [{:keys [a]} {:a 1}] a))))
+          ast @ast]
+      (is (empty? out) "No rechecking of let")
       (is (= :let (:op ast)))
       (is (= [(c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
               (c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
               (r/-val 1)]
              (mapv (comp :t u/expr-type) (:bindings ast))))
       (is (= :local (-> ast :body :ret :op)))
-      (is (= (r/-val 1) (-> ast :body :ret u/expr-type :t))))))
+      (is (= (r/-val 1) (-> ast :body :ret u/expr-type :t)))))
+  (testing "destructured with non-destructuring type error"
+    (let [ast (volatile! nil)
+          out (with-out-str (vreset! ast (tc-ast (let [{:keys [a]} {:a 1}] (t/ann-form a nil)))))
+          ast @ast]
+      (is (empty? out) "No rechecking of let")
+      (is (= :let (:op ast)))
+      (is (= [(c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
+              (c/-complete-hmap {(r/-val :a) (r/-val 1)} (clj-opts))
+              (r/-val 1)]
+             (mapv (comp :t u/expr-type) (:bindings ast))))
+      (is (= :local (-> ast :body :ret :op)))
+      (is (= r/-error (-> ast :body :ret u/expr-type :t))))))

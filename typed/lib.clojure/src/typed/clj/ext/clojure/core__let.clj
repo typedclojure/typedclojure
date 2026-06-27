@@ -13,6 +13,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.internal :as internal]
             [clojure.core.typed.util-vars :as vs]
+            [clojure.string :as str]
             [typed.cljc.checker.check.nth :as nth]
             [typed.cljc.checker.check :as check]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
@@ -373,6 +374,16 @@
                                (with-meta (meta form)))
                      u/expr-type unshadowed-ret)))))
 
+(defn destructuring-related-type-error? [{:keys [type-error form]}]
+  ;; vector destructuring
+  (and (= type-error :typed.clojure/app-type-error)
+       (seq? form)
+       (= (count form) 4)
+       (let [[op target] form]
+         (and (= op `nth)
+              (simple-symbol? target)
+              (str/starts-with? (name target) "vec__")))))
+
 (defuspecial defuspecial__let
   "defuspecial implementation for clojure.core/let"
   [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
@@ -393,10 +404,11 @@
             cexpr (-> expr
                       (ana2/analyze-outer opts)
                       (check-expr expected (assoc opts ::vs/type-errors type-errors)))]
-        (if (empty? @type-errors)
+        (if (not-any? destructuring-related-type-error? @type-errors)
           cexpr
           ;; recheck in the hope that type errors from destructuring are improved
-          (check-destructured-let expr expected opts)))
+          (do (println "Rechecking 'let' to improve destructuring error messages")
+              (check-destructured-let expr expected opts))))
       (-> expr
           (ana2/analyze-outer opts)
           (check-expr expected opts)))))
