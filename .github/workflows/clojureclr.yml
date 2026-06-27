@@ -36,7 +36,7 @@ jobs:
 
       - name: Restore dependency cache
         id: cache-deps
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.gitlibs
@@ -73,7 +73,7 @@ jobs:
 
       - name: Save dependency cache
         if: steps.cache-deps.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             ~/.gitlibs
