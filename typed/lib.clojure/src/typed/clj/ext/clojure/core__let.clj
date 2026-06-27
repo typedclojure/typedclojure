@@ -403,9 +403,12 @@
       (let [type-errors (err/-init-type-errors)
             cexpr (-> expr
                       (ana2/analyze-outer opts)
-                      (check-expr expected (assoc opts ::vs/type-errors type-errors)))]
-        (if (not-any? destructuring-related-type-error? @type-errors)
-          cexpr
+                      (check-expr expected (assoc opts ::vs/type-errors type-errors)))
+            type-errors @type-errors]
+        (if (not-any? destructuring-related-type-error? type-errors)
+          (do (when-not (empty? type-errors)
+                (swap! (::vs/type-errors opts) into type-errors))
+              cexpr)
           ;; recheck in the hope that type errors from destructuring are improved
           (do (println "Rechecking 'let' to improve destructuring error messages")
               (check-destructured-let expr expected opts))))
