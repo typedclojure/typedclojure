@@ -2,7 +2,7 @@
 {:paths ["src"],
  :deps
  {org.clojure/clojure {:mvn/version "1.12.3"},
-  org.clojure/core.cache {:mvn/version "1.1.234"},
+  org.clojure/core.cache {:mvn/version "1.2.263"},
   org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
   org.typedclojure/typed.lib.clojure {:local/root "../lib.clojure" :deps/manifest :deps},
   org.typedclojure/typed.lib.spec.alpha {:local/root "../lib.spec.alpha" :deps/manifest :deps},
@@ -11,7 +11,7 @@
   org.clojure/tools.namespace {:mvn/version "1.5.1"},
   org.clojure/tools.reader {:mvn/version "1.6.0"}
   com.nextjournal/beholder {:mvn/version "1.0.3"}
-  babashka/process {:mvn/version "0.5.22"}
+  babashka/process {:mvn/version "0.6.25"}
   io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}},
  :aliases
  {:script {:extra-paths ["script"]},
@@ -41,7 +41,7 @@
     com.gfredericks/test.chuck
     {:mvn/version "0.2.12"}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
-    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"}
     babashka/fs {:mvn/version "0.5.33"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
@@ -52,7 +52,7 @@
    :extra-paths ["script"]
    :main-opts ["-m" "gen-doc"]}
   :profile
-  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}}
+  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"}}
    :extra-paths ["script"]
    :main-opts ["-m" "profile"]}
   :eastwood
