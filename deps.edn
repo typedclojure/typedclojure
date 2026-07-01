@@ -190,7 +190,7 @@
    :exec-fn typed.clojure.main/exec}},
  :deps
  {selmer/selmer {:mvn/version "1.12.62"},
-  org.clojure/clojure {:mvn/version "1.12.3"},
+  org.clojure/clojure {:mvn/version "1.12.5"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.analyzer
