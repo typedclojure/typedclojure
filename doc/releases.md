@@ -8,7 +8,8 @@ and follow the instructions:
 ```
 
 Then push the resulting commit to `typedclojure/typedclojure` on the
-`main` branch.
+`main` branch by sending a PR and preserving the commit message exactly
+in the squashed commit of the merged PR.
 
-GitHub Actions will automatically deploy the release to Clojars and
-bump the pom.xml version and README.md versions.
+GitHub Actions will automatically deploy the version specified in the
+file `stable-version` at the root of repo to Clojars.
