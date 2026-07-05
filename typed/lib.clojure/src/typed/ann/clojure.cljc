@@ -2350,7 +2350,8 @@ cc/quot (t/IFn #?(:clj [Long Long :-> Long])
                [t/AnyInteger t/AnyInteger :-> t/AnyInteger] 
                [t/Num t/Num :-> t/Num])
 
-cc/unchecked-inc (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-inc (t/IFn #?(:clj [Long :-> Long])
+                        [t/AnyInteger :-> t/AnyInteger]
                         [t/Num :-> t/Num])
 cc/unchecked-inc-int [t/Num :-> t/AnyInteger]
 cc/unchecked-dec (t/IFn [t/AnyInteger :-> t/AnyInteger]

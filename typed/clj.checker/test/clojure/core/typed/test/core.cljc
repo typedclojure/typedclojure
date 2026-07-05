@@ -1194,7 +1194,8 @@
   (is-tc-e {:bar (identity 1)}))
 
 (deftest dotimes-test
-  (is-tc-e (clojure.core.typed/dotimes [i 100] (inc i)) nil))
+  (is-tc-e (clojure.core.typed/dotimes [i 100] (inc i)) nil)
+  (is-tc-e (cc/dotimes [b 4] b)))
 
 (deftest records-test
   (is (check-ns 'clojure.core.typed.test.records))
