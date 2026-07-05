@@ -9,15 +9,7 @@ set -e
 
 echo "Determining current version..."
 
-## via mvn
-TYPED_VERSION=$(mvn -q \
-  -Dexec.executable="echo" \
-  -Dexec.args='${project.version}' \
-  --non-recursive \
-  org.codehaus.mojo:exec-maven-plugin:1.6.0:exec)
-
-# via current-version file
-#TYPED_VERSION=$(bb -e '(-> "current-version" slurp str/trim print)')
+TYPED_VERSION=$(bb -e '(-> "current-version" slurp str/trim print)')
 
 if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   echo "Current version: ${TYPED_VERSION}"
@@ -33,6 +25,10 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]: " DEV_VERSION
   DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
+  bb -e '(spit \"stable-version\" (System/getenv "RELEASE_VERSION"))'
+  bb -e '(spit \"current-version\" (System/getenv "DEV_VERSION"))'
+
+  git add stable-version current-version
   git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")"
 else
   echo "Can only prep a release from a SNAPSHOT version, found $TYPED_VERSION"
