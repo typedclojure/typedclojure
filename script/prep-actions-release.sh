@@ -25,8 +25,8 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]: " DEV_VERSION
   DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
-  bb -e '(spit \"stable-version\" (System/getenv "RELEASE_VERSION"))'
-  bb -e '(spit \"current-version\" (System/getenv "DEV_VERSION"))'
+  bb -e '(spit "stable-version" (System/getenv "RELEASE_VERSION"))'
+  bb -e '(spit "current-version" (System/getenv "DEV_VERSION"))'
 
   git add stable-version current-version
   git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")"
