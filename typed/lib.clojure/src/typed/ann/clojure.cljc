@@ -2351,22 +2351,33 @@ cc/quot (t/IFn #?(:clj [Long Long :-> Long])
                [t/Num t/Num :-> t/Num])
 
 cc/unchecked-inc (t/IFn #?(:clj [Long :-> Long])
+                        #?(:clj [Double :-> Double])
                         [t/AnyInteger :-> t/AnyInteger]
                         [t/Num :-> t/Num])
 cc/unchecked-inc-int [t/Num :-> t/AnyInteger]
-cc/unchecked-dec (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-dec (t/IFn #?(:clj [Long :-> Long])
+                        #?(:clj [Double :-> Double])
+                        [t/AnyInteger :-> t/AnyInteger]
                         [t/Num :-> t/Num])
 cc/unchecked-dec-int [t/Num :-> t/AnyInteger]
-cc/unchecked-subtract (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-subtract (t/IFn #?(:clj [Long Long :-> Long])
+                             #?(:clj [Double Double :-> Double])
+                             [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                              [t/Num t/Num :-> t/Num])
 cc/unchecked-subtract-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-negate (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-negate (t/IFn #?(:clj [Long :-> Long])
+                           #?(:clj [Double :-> Double])
+                           [t/AnyInteger :-> t/AnyInteger]
                            [t/Num :-> t/Num])
 cc/unchecked-negate-int [t/Num :-> t/AnyInteger]
-cc/unchecked-add (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-add (t/IFn #?(:clj [Long Long :-> Long])
+                        #?(:clj [Double Double :-> Double])
+                        [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                         [t/Num t/Num :-> t/Num])
 cc/unchecked-add-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-multiply (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-multiply (t/IFn #?(:clj [Long Long :-> Long])
+                             #?(:clj [Double Double :-> Double])
+                             [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                              [t/Num t/Num :-> t/Num])
 cc/unchecked-multiply-int [t/Num t/Num :-> t/AnyInteger]
 cc/unchecked-divide-int [t/Num t/Num :-> t/AnyInteger]
