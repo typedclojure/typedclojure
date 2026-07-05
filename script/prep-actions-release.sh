@@ -18,18 +18,18 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   DEFAULT_RELEASE_VERSION="${TYPED_VERSION%-SNAPSHOT}"
   #https://stackoverflow.com/a/2642592 (bash 3 compatible)
   read -p "Choose release version [${DEFAULT_RELEASE_VERSION}]: " RELEASE_VERSION
-  RELEASE_VERSION=${RELEASE_VERSION:-${DEFAULT_RELEASE_VERSION}}
+  export release_version=${RELEASE_VERSION:-${DEFAULT_RELEASE_VERSION}}
 
   # default: increment patch
-  DEFAULT_DEV_VERSION=$(printf "%s-SNAPSHOT" $(./script/increment-semversion.sh -p ${RELEASE_VERSION}))
+  DEFAULT_DEV_VERSION=$(printf "%s-SNAPSHOT" $(./script/increment-semversion.sh -p ${release_version}))
   read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]: " DEV_VERSION
-  DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
+  export dev_version=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
-  bb -e '(spit "stable-version" (System/getenv "RELEASE_VERSION"))'
-  bb -e '(spit "current-version" (System/getenv "DEV_VERSION"))'
+  bb -e '(spit "stable-version" (System/getenv "release_version"))'
+  bb -e '(spit "current-version" (System/getenv "dev_version"))'
 
   git add stable-version current-version
-  git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")"
+  git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${release_version}" "${dev_version}")"
 else
   echo "Can only prep a release from a SNAPSHOT version, found $TYPED_VERSION"
   exit 1
