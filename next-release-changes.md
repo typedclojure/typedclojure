@@ -62,3 +62,8 @@
 - minimum supported JVM changed to 21 for virtual thread support
   - drop JVM 8, 11 support
 - replace work-stealing thread pool with virtual threads
+- remove non-JVM type checkers to help focus on core type system improvements
+- widen loop bindings to `Long` or `Double` from singleton types
+- type check actual `destructure` output for `let`/`loop` and recheck with custom version if type errors
+  are likely related to destructuring
+- add `Long`/`Double` overloads for several `unchecked-*` functions
