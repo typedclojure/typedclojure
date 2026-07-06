@@ -28,7 +28,9 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   bb -e '(spit "stable-version" (System/getenv "release_version"))'
   bb -e '(spit "current-version" (System/getenv "dev_version"))'
 
-  git add stable-version current-version
+  ./script/update_release_notes.clj
+
+  git add stable-version current-version next-release-changes.md CHANGELOG.md
   git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${release_version}" "${dev_version}")"
 else
   echo "Can only prep a release from a SNAPSHOT version, found $TYPED_VERSION"

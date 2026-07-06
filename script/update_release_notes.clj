@@ -16,4 +16,5 @@
     (spit "CHANGELOG.md" new-changelog)
     (spit "next-release-changes.md" "")))
 
-(-main)
+(when (= *file* (System/getProperty "babashka.file"))
+  (-main))
