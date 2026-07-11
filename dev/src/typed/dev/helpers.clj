@@ -60,10 +60,9 @@
    :malli-mvn-version "0.20.1"
    :beholder-mvn-version "1.0.3"
    :process-mvn-version "0.6.25"
-   :fs-mvn-version "0.5.33"
+   :fs-mvn-version "0.5.34"
    :fully-satisfies-mvn-version "1.12.0"
    :fully-satisfies-bb-sha "37149ae490af63071a2d92e730f22324e7835f24"
    :clj-async-profiler-mvn-version "1.7.0"
    :javaparser-mvn-version "3.26.1"
-   :graal-build-time-mvn-version "1.0.5"
    })
