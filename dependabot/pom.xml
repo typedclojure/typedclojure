@@ -120,7 +120,7 @@
       <dependency>
         <groupId>com.github.clj-easy</groupId>
         <artifactId>graal-build-time</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6</version>
       </dependency>
       <dependency>
         <groupId>com.github.javaparser</groupId>
