@@ -118,16 +118,6 @@
         <version>{◊clj-async-profiler-mvn-version◊}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.clj-easy</groupId>
-        <artifactId>graal-build-time</artifactId>
-        <version>{◊graal-build-time-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.javaparser</groupId>
-        <artifactId>javaparser-core</artifactId>
-        <version>{◊graal-build-time-mvn-version◊}</version>
-      </dependency>
-      <dependency>
         <groupId>io.github.frenchy64</groupId>
         <artifactId>fully-satisfies</artifactId>
         <version>{◊fully-satisfies-mvn-version◊}</version>
