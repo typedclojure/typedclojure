@@ -47,7 +47,29 @@
     boolean Boolean
     char Char
     ])
-    (RT/classForName (str sym))))
+    ;; Class identity/type inspection is not an active use of the user class.
+    (#?(:cljr RT/classForName :bb RT/classForName :default RT/classForNameNonLoading) (str sym))))
+
+(t/ann ^:no-check resolve-type-reference-symbol
+  [(t/U t/Sym clojure.lang.Namespace) t/Sym -> (t/U t/AnyVar #?(:cljr Type :default Class) nil)])
+(defn resolve-type-reference-symbol
+  "Resolve a type-reference symbol without initializing JVM Class names.
+   Preserve ns-resolve's Var/import/namespace-alias policies. Only its unqualified
+   dotted/array Class-name branch uses noninitializing RT lookup, with the same
+   base loader and ClassNotFoundException-to-nil behavior. CLR and Babashka keep
+   their existing resolver policies. This can still load/link Classes."
+  [source-ns sym]
+  (let [source-ns (the-ns source-ns)]
+   #?(:cljr (ns-resolve source-ns sym)
+     :bb (ns-resolve source-ns sym)
+     :default
+     (if (and (nil? (namespace sym))
+              (or (and (pos? (.indexOf ^String (name sym) "."))
+                       (not (.endsWith ^String (name sym) ".")))
+                  (.startsWith ^String (name sym) "[")))
+       (try (RT/classForNameNonLoading (name sym))
+            (catch ClassNotFoundException _ nil))
+       (ns-resolve source-ns sym)))))
 
 (t/ann Class->symbol [#?(:cljr Type :default Class) -> t/Sym])
 (defn Class->symbol [^#?(:cljr Type :default Class) cls]

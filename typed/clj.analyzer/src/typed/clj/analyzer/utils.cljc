@@ -178,7 +178,8 @@
                                   (not= \[ (first s))
                                   (resolve-sym (symbol s) {:ns (ns-name *ns*)}))]
         (when (class? maybe-class) maybe-class))
-      (try (RT/classForName s)
+      ;; Resolving a type for analysis must not execute user static initializers.
+      (try (#?(:cljr RT/classForName :bb RT/classForName :default RT/classForNameNonLoading) s)
            (catch #?(:cljr Exception :default ClassNotFoundException) _))))
 
 (defmethod maybe-class :default [_] nil)
