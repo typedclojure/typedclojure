@@ -1,13 +1,16 @@
 (ns clojure.core.typed.test.noninitializing-class-resolution
-  (:require [clojure.test :refer [deftest is]]
-            [typed.clj.analyzer.utils :as analyzer]
+  (:require [clojure.core.typed :as t]
             [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.core.typed :as t])
-  (:import [clojure.asm ClassWriter Opcodes]))
+            [clojure.test :refer [deftest is]]
+            [typed.clj.analyzer.utils :as analyzer])
+  (:import [clojure.asm ClassWriter Opcodes]
+           [clojure.lang Compiler DynamicClassLoader Namespace RT]))
 
-(defn- fixture-class [loader name property fail?]
+(set! *warn-on-reflection* true)
+
+(defn- fixture-class [^DynamicClassLoader loader ^String name property fail?]
   (let [writer (ClassWriter. 0)
-        internal (.replace ^String name "." "/")]
+        internal (.replace name "." "/")]
     (.visit writer Opcodes/V1_8 Opcodes/ACC_PUBLIC internal nil "java/lang/Object" nil)
     (.visitEnd (.visitField writer Opcodes/ACC_PUBLIC "coefficient" "D" nil nil))
     (let [method (.visitMethod writer Opcodes/ACC_STATIC "<clinit>" "()V" nil nil)]
@@ -28,23 +31,25 @@
       (.visitMaxs method 3 0)
       (.visitEnd method))
     (.visitEnd writer)
-    (.defineClass ^clojure.lang.DynamicClassLoader loader name (.toByteArray writer) nil)))
+    (.defineClass loader name (.toByteArray writer) nil)))
 
 (defn- with-owner [fail? check]
-  (let [loader (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader))
-        name (str "typed.fixture.TypeInspection" (clojure.lang.RT/nextID))
-        property (str "typed.test.type-inspection." (clojure.lang.RT/nextID))
+  (let [loader (DynamicClassLoader. (RT/baseLoader))
+        name (str "typed.fixture.TypeInspection" (RT/nextID))
+        property (str "typed.test.type-inspection.property" (RT/nextID))
         owner (fixture-class loader name property fail?)
-        source (create-ns (gensym "typed.type-inspection."))]
+        ^Namespace source (create-ns (gensym "typed.type-inspection.ns"))]
     (try
       (.importClass source 'OwnerAlias owner)
-      (with-bindings {clojure.lang.Compiler/LOADER loader}
+      (with-bindings {Compiler/LOADER loader}
         (binding [*ns* source]
           (check owner name property)
           (is (nil? (System/getProperty property)))
           ;; An actual active use must still initialize (or fail) normally.
-          (is (= (if fail? ExceptionInInitializerError nil)
-                 (try (Class/forName name true loader) nil (catch Throwable error (class error)))))
+          (is (= (when fail? ExceptionInInitializerError)
+                 (try (Class/forName name true loader)
+                      nil
+                      (catch Throwable error (class error)))))
           (is (= "initialized" (System/getProperty property)))))
       (finally
         (System/clearProperty property)
@@ -64,14 +69,15 @@
 (defn- instance-field-in-ast? [ast]
   ;; Follow the analyzer's declared AST children, not arbitrary TCResult/type
   ;; records; those intentionally reject lookup of unknown keys such as :op.
-  (when (map? ast)
-    (or (= :instance-field (:op ast))
-        (some (fn [key]
-                (let [child (get ast key)]
-                  (if (vector? child)
-                    (some instance-field-in-ast? child)
-                    (instance-field-in-ast? child))))
-              (:children ast)))))
+  (boolean
+    (and (map? ast)
+         (or (= :instance-field (:op ast))
+             (some (fn [key]
+                     (let [child (get ast key)]
+                       (if (vector? child)
+                         (some instance-field-in-ast? child)
+                         (instance-field-in-ast? child))))
+                   (:children ast))))))
 
 (deftest checker-field-inspection-is-not-an-active-use
   ;; Initialize checker configuration before creating the observed owner.
@@ -85,7 +91,7 @@
       (fn [_ name property]
         (let [tag (symbol name)
               value (with-meta 'value {:tag tag})
-              form (list 'clojure.core.typed/fn [value ':- tag]
+              form (list `t/fn [value ':- tag]
                          (list '. value '-coefficient))
               result (t/check-form-info form {:checked-ast true
                                               :check-config {:check-form-eval :never}})]
@@ -97,31 +103,31 @@
 
 (deftest primitive-and-missing-class-policies-are-unchanged
   (doseq [[tag expected] [['byte Byte/TYPE] ['short Short/TYPE] ['int Integer/TYPE]
-                        ['long Long/TYPE] ['float Float/TYPE] ['double Double/TYPE]
-                        ['boolean Boolean/TYPE] ['char Character/TYPE]]]
+                          ['long Long/TYPE] ['float Float/TYPE] ['double Double/TYPE]
+                          ['boolean Boolean/TYPE] ['char Character/TYPE]]]
     (is (identical? expected (coerce/symbol->Class tag))))
   (is (nil? (analyzer/maybe-class-from-string "typed.fixture.ClassThatDoesNotExist")))
   (is (= ClassNotFoundException
-         (try (coerce/symbol->Class 'typed.fixture.ClassThatDoesNotExist) nil
+         (try (coerce/symbol->Class 'typed.fixture.ClassThatDoesNotExist)
+              nil
               (catch Throwable error (class error))))))
 
 (deftest type-reference-resolution-preserves-var-alias-and-class-policies
   (doseq [fail? [false true]]
     (with-owner
       fail?
-      (fn [owner name property]
-        (let [other (create-ns (gensym "typed.type-alias."))
-              variable (intern other 'NamedType 'type-value)]
-          (try
-            (alias 'other-type (ns-name other))
-            (is (identical? owner (coerce/resolve-type-reference-symbol *ns* (symbol name))))
-            (is (identical? owner (coerce/resolve-type-reference-symbol *ns* 'OwnerAlias)))
-            (let [descriptor (str "[L" name ";")
-                  expected (Class/forName descriptor false (.getClassLoader ^Class owner))]
-              (is (identical? expected (coerce/resolve-type-reference-symbol *ns* (symbol descriptor)))))
-            (is (identical? variable (coerce/resolve-type-reference-symbol *ns* 'other-type/NamedType)))
-            (is (nil? (coerce/resolve-type-reference-symbol *ns* 'typed.fixture.ClassThatDoesNotExist)))
-            (is (nil? (System/getProperty property)))
-            (finally (remove-ns (ns-name other))))))))
-  (let [missing-source (gensym "typed.missing-source.")]
+      (fn [^Class owner name property]
+        (let [other (create-ns (gensym "typed.type-alias.ns"))]
+          (try (let [variable (intern other 'NamedType 'type-value)]
+                 (alias 'other-type (ns-name other))
+                 (is (identical? owner (coerce/resolve-type-reference-symbol *ns* (symbol name))))
+                 (is (identical? owner (coerce/resolve-type-reference-symbol *ns* 'OwnerAlias)))
+                 (let [descriptor (str "[L" name ";")
+                       expected (Class/forName descriptor false (.getClassLoader owner))]
+                   (is (identical? expected (coerce/resolve-type-reference-symbol *ns* (symbol descriptor)))))
+                 (is (identical? variable (coerce/resolve-type-reference-symbol *ns* 'other-type/NamedType)))
+                 (is (nil? (coerce/resolve-type-reference-symbol *ns* 'typed.fixture.ClassThatDoesNotExist)))
+                 (is (nil? (System/getProperty property))))
+               (finally (remove-ns (ns-name other))))))))
+  (let [missing-source (gensym "typed.missing-source.ns")]
     (is (thrown? Exception (coerce/resolve-type-reference-symbol missing-source 'java.lang.String)))))

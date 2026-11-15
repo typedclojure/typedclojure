@@ -13,6 +13,8 @@
             [clojure.core.typed.current-impl :as impl])
   (:import (clojure.lang RT Var)))
 
+(set! *warn-on-reflection* true)
+
 (t/ann symbol->Class [t/Sym -> #?(:cljr Type :default Class)])
 (defn symbol->Class 
   "Returns the Class represented by the symbol. Works for
@@ -51,25 +53,25 @@
     (#?(:cljr RT/classForName :bb RT/classForName :default RT/classForNameNonLoading) (str sym))))
 
 (t/ann ^:no-check resolve-type-reference-symbol
-  [(t/U t/Sym clojure.lang.Namespace) t/Sym -> (t/U t/AnyVar #?(:cljr Type :default Class) nil)])
+  [(t/U t/Sym t/Namespace) t/Sym -> (t/U t/AnyVar #?(:cljr Type :default Class) nil)])
 (defn resolve-type-reference-symbol
   "Resolve a type-reference symbol without initializing JVM Class names.
-   Preserve ns-resolve's Var/import/namespace-alias policies. Only its unqualified
-   dotted/array Class-name branch uses noninitializing RT lookup, with the same
-   base loader and ClassNotFoundException-to-nil behavior. CLR and Babashka keep
-   their existing resolver policies. This can still load/link Classes."
+  Preserve ns-resolve's Var/import/namespace-alias policies. Only its unqualified
+  dotted/array Class-name branch uses noninitializing RT lookup, with the same
+  base loader and ClassNotFoundException-to-nil behavior. CLR and Babashka keep
+  their existing resolver policies. This can still load/link Classes."
   [source-ns sym]
   (let [source-ns (the-ns source-ns)]
-   #?(:cljr (ns-resolve source-ns sym)
-     :bb (ns-resolve source-ns sym)
-     :default
-     (if (and (nil? (namespace sym))
-              (or (and (pos? (.indexOf ^String (name sym) "."))
-                       (not (.endsWith ^String (name sym) ".")))
-                  (.startsWith ^String (name sym) "[")))
-       (try (RT/classForNameNonLoading (name sym))
-            (catch ClassNotFoundException _ nil))
-       (ns-resolve source-ns sym)))))
+    #?(:cljr (ns-resolve source-ns sym)
+       :bb (ns-resolve source-ns sym)
+       :default
+       (if (and (nil? (namespace sym))
+                (or (and (pos? (.indexOf (name sym) "."))
+                         (not (.endsWith (name sym) ".")))
+                    (.startsWith (name sym) "[")))
+         (try (RT/classForNameNonLoading (name sym))
+              (catch ClassNotFoundException _))
+         (ns-resolve source-ns sym)))))
 
 (t/ann Class->symbol [#?(:cljr Type :default Class) -> t/Sym])
 (defn Class->symbol [^#?(:cljr Type :default Class) cls]
