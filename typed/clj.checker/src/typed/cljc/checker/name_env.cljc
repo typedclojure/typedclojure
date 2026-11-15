@@ -9,6 +9,7 @@
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.name-env
   (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [typed.clojure :as t]
+            [clojure.core.typed.coerce-utils :as coerce]
             [typed.cljc.runtime.env-utils :refer [force-type]]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
@@ -122,7 +123,7 @@
         (prenv/get-protocol checker sym opts)
         (impl/impl-case opts
           :clojure (or (rcls/get-rclass checker sym opts)
-                       (when (class? (resolve sym))
+                       (when (class? (coerce/resolve-type-reference-symbol *ns* sym))
                          (c/RClass-of-with-unknown-params sym opts)))
           :cljs ((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) sym opts))
         ; during the definition of RClass's that reference

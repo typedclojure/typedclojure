@@ -1117,7 +1117,7 @@
   (impl/assert-clojure opts)
   (let [nsym (parse-in-ns opts)]
     (if-some [ns (find-ns nsym)]
-      (or (when-some [res (ns-resolve ns sym)]
+      (or (when-some [res (coerce/resolve-type-reference-symbol ns sym)]
             (or (when-some [rewrite-nsym (when (var? res)
                                            (ns-rewrites-clj (some-> res symbol namespace symbol)))]
                   (find-var (symbol (name rewrite-nsym) (-> res symbol name))))
@@ -1169,7 +1169,7 @@
       (or (when (special-symbol? sym)
             sym)
           ('#{Array ReadOnlyArray Array2 Array3 Assoc HMap Extends} sym)
-          (when-some [res (ns-resolve ns sym)]
+          (when-some [res (coerce/resolve-type-reference-symbol ns sym)]
             (or (when (var? res)
                   (if-some [rewrite-nsym (ns-rewrites-clj (some-> res symbol namespace symbol))]
                     (symbol (name rewrite-nsym) (-> res symbol name))
