@@ -21,7 +21,7 @@
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
-   {babashka/fs {:mvn/version "0.5.33"},
+   {babashka/fs {:mvn/version "0.5.34"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -81,7 +81,7 @@
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :extra-deps
-   {babashka/fs {:mvn/version "0.5.33"},
+   {babashka/fs {:mvn/version "0.5.34"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -115,7 +115,7 @@
   :spec-skip-macros {:jvm-opts ["-Dclojure.spec.skip-macros=true"]},
   :test
   {:extra-deps
-   {babashka/fs {:mvn/version "0.5.33"},
+   {babashka/fs {:mvn/version "0.5.34"},
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
@@ -190,7 +190,7 @@
    :exec-fn typed.clojure.main/exec}},
  :deps
  {selmer/selmer {:mvn/version "1.12.62"},
-  org.clojure/clojure {:mvn/version "1.12.5"},
+  org.clojure/clojure {:mvn/version "1.13.0-alpha11"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.analyzer

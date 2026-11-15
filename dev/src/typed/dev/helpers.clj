@@ -22,7 +22,7 @@
 
 ;; add new deps to `dev/resources/root-templates/dependabot/pom.xml` for dependabot support
 (def selmer-input-map
-  {:clojure-mvn-version "1.13.0"
+  {:clojure-mvn-version "1.13.0-alpha11"
    :clojure-next-release-mvn-version nil #_"1.12.0-alpha1"
    :clojure-next-snapshot-mvn-version "1.14.0-master-SNAPSHOT"
    :min-supported-jdk "21"
